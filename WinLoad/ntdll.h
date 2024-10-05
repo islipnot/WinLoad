@@ -91,3 +91,39 @@ struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrn
 	SINGLE_LIST_ENTRY* CondenseLink;
 	ULONG PreorderNumber;
 };
+
+typedef struct API_SET_VALUE_ENTRY
+{
+	DWORD Flags;
+	DWORD NameOffset;
+	DWORD NameLength;
+	DWORD ValueOffset;
+	DWORD ValueLength;
+} HOST_ENTRY;
+
+typedef struct NAMESPACE_HEADER
+{
+	DWORD SchemaExt;
+	DWORD MapSizeByte;
+	DWORD Flags;
+	DWORD ApiSetCount;
+	DWORD NsEntryOffset;
+	DWORD HashOffset;
+	DWORD Multiplier;
+} API_SET_MAP;
+
+typedef struct API_SET_NAMESPACE_ENTRY
+{
+	DWORD Flags;
+	DWORD ApiNameOffset;
+	DWORD ApiNameSz;
+	DWORD ApiSubNameSz;
+	DWORD HostEntryOffset;
+	DWORD HostCount;
+} NAMESPACE_ENTRY;
+
+struct HASH_ENTRY
+{
+	DWORD ApiHash;
+	DWORD ApiIndex;
+};
