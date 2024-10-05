@@ -2,32 +2,46 @@
 
 // Enums
 
-enum LDR_ENTRY_FLAGS // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
+enum LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {
-	PackagedBinary                 = 0x00000001,
-	LDRP_MARKED_FOR_REMOVAL        = 0x00000002,
-	LDRP_IMAGE_DLL                 = 0x00000004,
-	LDRP_LOAD_NOTIFICATIONS_SENT   = 0x00000008,
-	LDRP_TELEMETRY_ENTRY_PROCESSED = 0x00000010,
-	ProcessStaticImport            = 0x00000020,
-	InLegacyLists                  = 0x00000040,
-	InIndexes                      = 0x00000080,
-	ShimDll                        = 0x00000100,
-	InExceptionTable               = 0x00000200,
-	LDRP_LOAD_IN_PROGRESS          = 0x00001000,
-	LoadConfigProcessed            = 0x00002000,
-	LDRP_ENTRY_PROCESSED           = 0x00004000,
-	ProtectDelayLoad               = 0x00008000,
-	LDRP_DONT_CALL_FOR_THREADS     = 0x00040000,
-	LDRP_PROCESS_ATTACH_CALLED     = 0x00080000,
-	ProcessAttachFailed            = 0x00100000,
-	CorDeferredValidate            = 0x00200000,
-	LDRP_COR_IMAGE                 = 0x00400000,
-	LDRP_DONT_RELOCATE             = 0x00800000,
-	LDRP_COR_IL_ONLY               = 0x01000000,
-	ChpeImage                      = 0x02000000,
-	LDRP_REDIRECTED                = 0x10000000,
-	CompatDatabaseProcessed        = 0x80000000,
+	PackagedBinary          = 0x00000001,
+	MarkedForRemoval        = 0x00000002,
+	ImageDll                = 0x00000004,
+	LoadNotificationsSent   = 0x00000008,
+	TelemetryEntryProcessed = 0x00000010,
+	ProcessStaticImport     = 0x00000020,
+	InLegacyLists           = 0x00000040,
+	InIndexes               = 0x00000080,
+	ShimDll                 = 0x00000100,
+	InExceptionTable        = 0x00000200,
+	LoadInProgress          = 0x00001000,
+	LoadConfigProcessed     = 0x00002000,
+	EntryProcessed          = 0x00004000,
+	ProtectDelayLoad        = 0x00008000,
+	DontCallForThreads      = 0x00040000,
+	ProcessAttachCalled     = 0x00080000,
+	ProcessAttachFailed     = 0x00100000,
+	CorDeferredValidate     = 0x00200000,
+	CorImage                = 0x00400000,
+	DontRelocate            = 0x00800000,
+	CorILOnly               = 0x01000000,
+	ChpeImage               = 0x02000000,
+	Redirected              = 0x10000000,
+	CompatDatabaseProcessed = 0x80000000,
+};
+
+enum LDR_DLL_LOAD_REASON // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
+{
+	LoadReasonStaticDependency           =  0,
+	LoadReasonStaticForwarderDependency  =  1,
+	LoadReasonDynamicForwarderDependency =  2,
+	LoadReasonDelayloadDependency        =  3,
+	LoadReasonDynamicLoad                =  4,
+	LoadReasonAsImageLoad                =  5,
+	LoadReasonAsDataLoad                 =  6,
+	LoadReasonEnclavePrimary             =  7,
+	LoadReasonEnclaveDependency          =  8,
+	LoadReasonUnknown                    = -1
 };
 
 enum LDR_DDAG_STATE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_state.htm
@@ -74,6 +88,12 @@ struct LDR_DLL_DATA
 	char Unk2[58];
 };
 
+/*
+- Instances of LDR_DLL_DATA are initialized in LdrpInitializeDllPath
+
+- LDR_DLL_DATA::Flags 
+*/
+
 /*IN PROGRESS*/
 struct LDRP_LOAD_CONTEXT
 {
@@ -86,14 +106,20 @@ struct LDRP_LOAD_CONTEXT
 	LDR_DATA_TABLE_ENTRY* ParentLdrEntry; // The dll that the load context's corresponding dll is a dependency of
 	LDR_DATA_TABLE_ENTRY* LdrEntry; // Corresponding LdrEntry
 	char Pad3[72];
-	WCHAR DllPathStr[];
+	WCHAR DllPathBase;
 };
 
-/*
-* > LDRP_LOAD_CONTEXT
-* 
-* INITIALIZATION
-* - Initialized in LdrpAllocatePlaceHolder
+/* 
+- Instances of LDRP_LOAD_CONTEXT are initialized in LdrpAllocatePlaceHolder.
+
+- LDRP_LOAD_CONTEXT::DllPathBase is the base of an allocated buffer for the
+  DllPath, the size being equal to DllPath->Length (Allocated along with the 
+  load context via RtlAllocateHeap, total size being DllPath->Length + 0x6E)
+
+- I haven't fully reversed the meaning behind the possible flags for 
+  LDRP_LOAD_CONTEXT::Flags, though if you trace the flags back to their 
+  initialization in the execution path of LdrLoadDll, you can see they're
+  derived from DLL characteristics via LdrpDllCharacteristicsToLoadFlags
 */
 
 struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
@@ -110,7 +136,99 @@ struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrn
 	ULONG PreorderNumber;
 };
 
-typedef struct API_SET_VALUE_ENTRY
+struct RTL_BALANCED_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/shared/ntdef/rtl_balanced_node.htm
+{
+	union 
+	{
+		RTL_BALANCED_NODE* Children[2];
+		struct 
+		{
+			RTL_BALANCED_NODE* Left;
+			RTL_BALANCED_NODE* Right;
+		};
+	};
+	union 
+	{
+		UCHAR Red : 1;
+		UCHAR Balance : 2;
+		ULONG_PTR ParentValue;
+	};
+};
+
+struct __LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
+{
+	LIST_ENTRY InLoadOrderLinks;
+	LIST_ENTRY InMemoryOrderLinks;
+	union
+	{
+		LIST_ENTRY InInitializationOrderLinks;
+		LIST_ENTRY InProgressLinks;
+	};
+	PVOID DllBase;
+	PVOID EntryPoint;
+	ULONG SizeOfImage;
+	UNICODE_STRING FullDllName;
+	UNICODE_STRING BaseDllName;
+	union
+	{
+		UCHAR FlagGroup[4];
+		ULONG Flags;
+		struct
+		{
+			ULONG PackagedBinary : 1;
+			ULONG MarkedForRemoval : 1;
+			ULONG ImageDll : 1;
+			ULONG LoadNotificationsSent : 1;
+			ULONG TelemetryEntryProcessed : 1;
+			ULONG ProcessStaticImport : 1;
+			ULONG InLegacyLists : 1;
+			ULONG InIndexes : 1;
+			ULONG ShimDll : 1;
+			ULONG InExceptionTable : 1;
+			ULONG ReservedFlags1 : 2;
+			ULONG LoadInProgress : 1;
+			ULONG LoadConfigProcessed : 1;
+			ULONG EntryProcessed : 1;
+			ULONG ProtectDelayLoad : 1;
+			ULONG ReservedFlags3 : 2;
+			ULONG DontCallForThreads : 1;
+			ULONG ProcessAttachCalled : 1;
+			ULONG ProcessAttachFailed : 1;
+			ULONG CorDeferredValidate : 1;
+			ULONG CorImage : 1;
+			ULONG DontRelocate : 1;
+			ULONG CorILOnly : 1;
+			ULONG ChpeImage : 1;
+			ULONG ReservedFlags5 : 2;
+			ULONG Redirected : 1;
+			ULONG ReservedFlags6 : 2;
+			ULONG CompatDatabaseProcessed : 1;
+		};
+	};
+	USHORT ObsoleteLoadCount;
+	USHORT TlsIndex;
+	LIST_ENTRY HashLinks;
+	ULONG TimeDateStamp;
+	PVOID EntryPointActivationContext;
+	PVOID Lock;
+	LDR_DDAG_NODE* DdagNode;
+	LIST_ENTRY NodeModuleLink;
+	LDRP_LOAD_CONTEXT* LoadContext;
+	PVOID ParentDllBase;
+	PVOID SwitchBackContext;
+	RTL_BALANCED_NODE BaseAddressIndexNode;
+	RTL_BALANCED_NODE MappingInfoIndexNode;
+	ULONG_PTR OriginalBase;
+	LARGE_INTEGER LoadTime;
+	ULONG BaseNameHashValue;
+	LDR_DLL_LOAD_REASON LoadReason;
+	ULONG ImplicitPathOptions;
+	ULONG ReferenceCount;
+	ULONG DependentLoadFlags;
+	UCHAR SigningLevel;
+};
+
+typedef struct API_SET_VALUE_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
 	DWORD Flags;
 	DWORD NameOffset;
@@ -119,7 +237,7 @@ typedef struct API_SET_VALUE_ENTRY
 	DWORD ValueLength;
 } HOST_ENTRY;
 
-typedef struct NAMESPACE_HEADER
+typedef struct NAMESPACE_HEADER // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
 	DWORD SchemaExt;
 	DWORD MapSizeByte;
@@ -130,7 +248,7 @@ typedef struct NAMESPACE_HEADER
 	DWORD Multiplier;
 } API_SET_MAP;
 
-typedef struct API_SET_NAMESPACE_ENTRY
+typedef struct API_SET_NAMESPACE_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
 	DWORD Flags;
 	DWORD ApiNameOffset;
@@ -140,7 +258,7 @@ typedef struct API_SET_NAMESPACE_ENTRY
 	DWORD HostCount;
 } NAMESPACE_ENTRY;
 
-struct HASH_ENTRY
+struct HASH_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
 	DWORD ApiHash;
 	DWORD ApiIndex;
@@ -163,3 +281,5 @@ typedef PWSTR(__stdcall RtlGetNtSystemRoot)(); // Exported
 typedef NTSTATUS(__fastcall LdrpGetFullPath)(_In_ UNICODE_STRING* DllName, _Out_ UNICODE_STRING* DllPath);
 
 typedef NTSTATUS(__fastcall LdrpPreprocessDllName)(_In_ UNICODE_STRING* DllName, _Out_ UNICODE_STRING* ProcessedName, _In_opt_ LDR_DATA_TABLE_ENTRY* ParentLdrEntry, _Inout_ ULONG* LoadFlags);
+
+typedef NTSTATUS(__fastcall LdrpParseForwarderDescription)(_In_ char* Forwarder, _Out_ STRING* DllName, _Out_ char** ExportName, _In_ ULONG Ordinal);
