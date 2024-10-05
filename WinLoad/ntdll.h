@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable : 001)
 
 // Enums
 
@@ -49,6 +50,16 @@ enum LDR_DDAG_STATE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl
 	LdrModulesReadyToRun             =  9
 };
 
+enum API_MASKS // Used in ApiSetResolveToHost to check the validity of an API set's name
+{
+	API_HIGH      = 0x0002D0049,
+	EXT_HIGH      = 0x0002D0054,
+	API_LOW       = 0x000500041,
+	EXT_LOW       = 0x000580045,
+	API_MASK_LOW  = 0x0FFDFFFDF,
+	API_MASK_HIGH = 0x0FFFFFFDF
+};
+
 // Typedefs
 
 typedef SINGLE_LIST_ENTRY* LDRP_CSLIST;
@@ -71,12 +82,20 @@ struct LDRP_LOAD_CONTEXT
 	LDR_DLL_DATA* DllData;
 	char Pad1[4];
 	ULONG Flags;
-	char Pad2[8];
+	char Pad2[4];
+	NTSTATUS* pState;
 	LDR_DATA_TABLE_ENTRY* ParentLdrEntry; // The dll that the load context's corresponding dll is a dependency of
 	LDR_DATA_TABLE_ENTRY* LdrEntry; // Corresponding LdrEntry
 	char Pad3[72];
 	WCHAR DllPathStr[];
 };
+
+/*
+* > LDRP_LOAD_CONTEXT
+* 
+* INITIALIZATION
+* - Initialized in LdrpAllocatePlaceHolder
+*/
 
 struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
 {
@@ -127,3 +146,9 @@ struct HASH_ENTRY
 	DWORD ApiHash;
 	DWORD ApiIndex;
 };
+
+// Function signatures
+
+typedef NTSTATUS(__fastcall* LdrpAllocatePlaceHolder)(PUNICODE_STRING DllPath, LDR_DLL_DATA* pDllData, ULONG Flags, INT LoadReason, LDR_DATA_TABLE_ENTRY* ParentEntry, LDR_DATA_TABLE_ENTRY** pLdrEntry, NTSTATUS* State);
+
+typedef NTSTATUS(__fastcall* ApiSetResolveToHost)(_In_ NAMESPACE_HEADER* ApiSetMap, _In_ UNICODE_STRING* ApiName, _In_opt_ UNICODE_STRING* ParentName, _Out_ bool* Resolved, _Out_ UNICODE_STRING* HostName);
