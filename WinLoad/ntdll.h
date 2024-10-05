@@ -148,6 +148,14 @@ struct HASH_ENTRY
 
 // Function signatures
 
-typedef NTSTATUS(__fastcall* LdrpAllocatePlaceHolder)(PUNICODE_STRING DllPath, LDR_DLL_DATA* pDllData, ULONG Flags, INT LoadReason, LDR_DATA_TABLE_ENTRY* ParentEntry, LDR_DATA_TABLE_ENTRY** pLdrEntry, NTSTATUS* State);
+typedef NTSTATUS(__fastcall LdrpAllocatePlaceHolder)(UNICODE_STRING* DllPath, LDR_DLL_DATA* pDllData, ULONG Flags, INT LoadReason, LDR_DATA_TABLE_ENTRY* ParentEntry, LDR_DATA_TABLE_ENTRY** pLdrEntry, NTSTATUS* State);
 
-typedef NTSTATUS(__fastcall* ApiSetResolveToHost)(_In_ NAMESPACE_HEADER* ApiSetMap, _In_ UNICODE_STRING* ApiName, _In_opt_ UNICODE_STRING* ParentName, _Out_ bool* Resolved, _Out_ UNICODE_STRING* HostName);
+typedef LONG(NTAPI RtlCompareUnicodeStrings)(_In_ PWSTR Str1, _In_ UINT Sz1, _In_ PWSTR Str2, _In_ UINT Sz2, _In_ bool CaseInsensitive); // Not the same as RtlCompareUnicodeString
+
+typedef HOST_ENTRY* (__fastcall ApiSetpSearchForApiSetHost)(_In_ NAMESPACE_ENTRY* NsEntry, _In_ PWSTR HostName, _In_ UINT16 HostNameSz, _In_ NAMESPACE_HEADER* ApiSetMap);
+
+typedef NAMESPACE_ENTRY* (__fastcall ApiSetpSearchForApiSet)(_In_ NAMESPACE_HEADER* ApiSetMap, _In_ PWSTR ApiName, _In_ UINT16 ApiSubNameSz);
+
+typedef NTSTATUS(__fastcall ApiSetResolveToHost)(_In_ NAMESPACE_HEADER* ApiSetMap, _In_ UNICODE_STRING* ApiName, _In_opt_ UNICODE_STRING* ParentName, _Out_ bool* Resolved, _Out_ UNICODE_STRING* HostName);
+
+typedef NTSTATUS(__fastcall LdrpPreprocessDllName)(_In_ UNICODE_STRING* DllName, _Out_ UNICODE_STRING* ProcessedName, _In_opt_ LDR_DATA_TABLE_ENTRY* ParentLdrEntry, _Inout_ ULONG* LoadFlags);
