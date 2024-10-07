@@ -4,7 +4,7 @@
 
 enum LOAD_CONTEXT_FLAGS
 {
-	Unknown1             = 0x800000,
+	UseActivationContext = 0x0800000,
 	RedirectModuleImport = 0x2000000
 };
 
@@ -119,29 +119,38 @@ typedef struct LDRP_LOAD_CONTEXT
 	ULONG Flags;
 	char Pad1[4];
 	NTSTATUS* pState;
-	LDR_DATA_TABLE_ENTRY* ParentLdrEntry; // The dll that the load context's corresponding dll is a dependency of
-	LDR_DATA_TABLE_ENTRY* LdrEntry; // Corresponding LdrEntry
-	char Pad2[24];
+	LDR_DATA_TABLE_ENTRY* ParentLdrEntry;
+	LDR_DATA_TABLE_ENTRY* LdrEntry;
+	char Pad2[12];
+	LDR_DATA_TABLE_ENTRY** DependencyLdrEntryArray;
+	ULONG DependencyCount;
+	char Pad3[4];
 	IMAGE_THUNK_DATA32* IAT;
-	ULONG IAT_Size;
-	char Pad3[16];
+	ULONG IATSize;
+	char Pad4[12];
+	ULONG OldIATProtect;
 	DWORD* GuardCFCheckFunctionPointer;
 	DWORD GuardCFCheckFunctionPointerVA;
 	ULONG Unk1;
 	int Unk2;
-	char Pad4[8];
+	char Pad5[4];
+	BYTE* DllSectionBase;
 	WCHAR DllPathBase;
 } LOAD_CONTEXT;
 
 /* 
-- Instances of LDRP_LOAD_CONTEXT are initialized in LdrpAllocatePlaceHolder,
+- Instances of LOAD_CONTEXT are initialized in LdrpAllocatePlaceHolder,
   though not all of the instances member's are initialized there.
 
-- LDRP_LOAD_CONTEXT::Handle is initialized near the end of LdrpMapDllNtFileName
+- LOAD_CONTEXT::Handle is initialized near the end of LdrpMapDllNtFileName.
 
-- LDRP_LOAD_CONTEXT::DllPathBase is the base of an allocated buffer for the
-  DllPath, the size being equal to DllPath->Length (Allocated along with the 
-  load context via RtlAllocateHeap, total size being DllPath->Length + 0x6E).
+- LOAD_CONTEXT::DllPathBase is the base of an allocated buffer for the DllPath, 
+  the size being equal to DllPath->Length (Allocated along with the load context 
+  via RtlAllocateHeap, total size being DllPath->Length + 0x6E).
+
+- LOAD_CONTEXT::DependencyCount is initialized in LdrpMapAndSnapDependency
+  along with LOAD_CONTEXT::DependencyLdrEntryArray. That array is filled
+  in LdrpLoadDependentModule.
 */
 
 struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
@@ -324,6 +333,13 @@ typedef NTSTATUS(__fastcall LdrpCorProcessImports)(_Inout_ LDR_DATA_TABLE_ENTRY*
 
 typedef NTSTATUS* (__fastcall LdrpMapAndSnapDependency)(_Inout_ LOAD_CONTEXT* LoadContext);
 
+typedef NTSTATUS(__fastcall LdrpPrepareImportAddressTableForSnap)(_Inout_ LOAD_CONTEXT* LoadContext);
+
 typedef bool(__fastcall LdrpShouldModuleImportBeRedirected)(_In_ LDR_DATA_TABLE_ENTRY* LdrEntry);
 
-typedef NTSTATUS(__fastcall LdrpPrepareImportAddressTableForSnap)(_Inout_ LOAD_CONTEXT* LoadContext);
+typedef IMAGE_IMPORT_DESCRIPTOR* (__fastcall LdrpGetImportDescriptorForSnap)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef NTSTATUS(__fastcall RtlpImageDirectoryEntryToDataEx)(_In_ void* Base, _In_ bool MappedAsImage, _In_ UINT16 DirectoryEntry, _Out_ ULONG* DirSize, _Out_ void** ResolvedAddress);
+
+typedef NTSTATUS(__fastcall LdrpMapCleanModuleView)(_Inout_ LOAD_CONTEXT* LoadContext);
+
