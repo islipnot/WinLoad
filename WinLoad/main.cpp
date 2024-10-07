@@ -10,7 +10,64 @@ HOST_ENTRY* __fastcall ApiSetpSearchForApiSetHost(_In_ NAMESPACE_ENTRY* NsEntry,
 
 NAMESPACE_ENTRY* __fastcall ApiSetpSearchForApiSet(_In_ NAMESPACE_HEADER* ApiSetMap, _In_ PWSTR ApiName, _In_ UINT16 ApiSubNameSz)
 {
+	DWORD ApiHash = 0;
 
+	if (ApiSubNameSz) // Hashing API Set name
+	{
+		PWSTR pApiName = ApiName;
+
+		for (int i = ApiSubNameSz;; --i)
+		{
+			WCHAR ch = *pApiName;
+
+			if (static_cast<UINT16>(ch - 65) <= 25u) // Casting to UINT16 prevents non-letters ('-'/digits) from being converted
+				ch += 32; // Converting char to lowercase if its uppercase
+
+			++pApiName;
+			ApiHash = ch + (ApiSetMap->Multiplier * ApiHash);
+
+			if (!i) break;
+		}
+	}
+
+	int UpperMidIndex = 0;
+	int LowerMidIndex = ApiSetMap->ApiSetCount - 1;
+	if (LowerMidIndex < 0) return nullptr;
+
+	DWORD HashOffset = ApiSetMap->HashOffset;
+	DWORD HashEntryOffset;
+
+	while (true) // Getting API set's corresponding HASH_TABLE entry
+	{
+		const int EntryIndex = (LowerMidIndex + UpperMidIndex) >> 1;
+		HashEntryOffset = HashOffset + (sizeof(HASH_ENTRY) * EntryIndex);
+
+		if (ApiHash < *reinterpret_cast<DWORD*>(reinterpret_cast<char*>(ApiSetMap) + HashEntryOffset))
+		{
+			LowerMidIndex = EntryIndex - 1;
+		}
+		else
+		{
+			if (ApiHash <= *reinterpret_cast<DWORD*>(reinterpret_cast<char*>(ApiSetMap) + HashEntryOffset))
+				break;
+
+			UpperMidIndex = EntryIndex + 1;
+		}
+
+		if (UpperMidIndex > LowerMidIndex)
+			return nullptr;
+	}
+
+	const DWORD NsEntryOffset = ApiSetMap->NsEntryOffset + (sizeof(NAMESPACE_ENTRY) * *reinterpret_cast<DWORD*>(reinterpret_cast<char*>(ApiSetMap) + HashEntryOffset + 4));
+	auto NsEntry = reinterpret_cast<NAMESPACE_ENTRY*>(reinterpret_cast<char*>(ApiSetMap) + NsEntryOffset);
+	
+	if (!NsEntry) return nullptr;
+
+	// The actual function uses RtlCompareUnicodeStrings here, but that's not worth calling GetProcAddress for.
+	if (_wcsnicmp(ApiName, reinterpret_cast<PCWSTR>(reinterpret_cast<char*>(ApiSetMap) + NsEntry->ApiNameOffset), ApiSubNameSz) == 0)
+		return NsEntry;
+
+	return nullptr;
 }
 
 NTSTATUS __fastcall ApiSetResolveToHost(NAMESPACE_HEADER* ApiSetMap, UNICODE_STRING* ApiName, UNICODE_STRING* ParentName, bool* pResolved, UNICODE_STRING* HostName)
