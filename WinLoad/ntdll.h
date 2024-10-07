@@ -90,12 +90,19 @@ struct LDR_DLL_DATA
 	char Unk2[58];
 };
 
+/*
+- Unk1, Unk2[56], DllPath, and PackageDirs are all seen being initialized in
+  LdrpComputeLazyDllPath.
+
+- 
+*/
+
 /*IN PROGRESS*/
-struct LDRP_LOAD_CONTEXT
+typedef struct LDRP_LOAD_CONTEXT
 {
 	UNICODE_STRING DllPath;
 	LDR_DLL_DATA* DllData;
-	char Pad1[4];
+	HMODULE Handle;
 	ULONG Flags;
 	char Pad2[4];
 	NTSTATUS* pState;
@@ -103,19 +110,22 @@ struct LDRP_LOAD_CONTEXT
 	LDR_DATA_TABLE_ENTRY* LdrEntry; // Corresponding LdrEntry
 	char Pad3[72];
 	WCHAR DllPathBase;
-};
+} LOAD_CONTEXT;
 
 /* 
-- Instances of LDRP_LOAD_CONTEXT are initialized in LdrpAllocatePlaceHolder.
+- Instances of LDRP_LOAD_CONTEXT are initialized in LdrpAllocatePlaceHolder,
+  though not all of the instances member's are initialized there.
+
+- LDRP_LOAD_CONTEXT::Handle is initialized near the end of LdrpMapDllNtFileName
 
 - LDRP_LOAD_CONTEXT::DllPathBase is the base of an allocated buffer for the
   DllPath, the size being equal to DllPath->Length (Allocated along with the 
-  load context via RtlAllocateHeap, total size being DllPath->Length + 0x6E)
+  load context via RtlAllocateHeap, total size being DllPath->Length + 0x6E).
 
 - I haven't fully reversed the meaning behind the possible flags for 
   LDRP_LOAD_CONTEXT::Flags, though if you trace the flags back to their 
   initialization in the execution path of LdrLoadDll, you can see they're
-  derived from DLL characteristics via LdrpDllCharacteristicsToLoadFlags
+  derived from DLL characteristics via LdrpDllCharacteristicsToLoadFlags.
 */
 
 struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
@@ -209,7 +219,7 @@ struct __LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/windows/k
 	PVOID Lock;
 	LDR_DDAG_NODE* DdagNode;
 	LIST_ENTRY NodeModuleLink;
-	LDRP_LOAD_CONTEXT* LoadContext;
+	LOAD_CONTEXT* LoadContext;
 	PVOID ParentDllBase;
 	PVOID SwitchBackContext;
 	RTL_BALANCED_NODE BaseAddressIndexNode;
@@ -283,3 +293,9 @@ typedef NTSTATUS(__fastcall LdrpParseForwarderDescription)(_In_ char* Forwarder,
 typedef UINT(__stdcall LdrStandardizeSystemPath)(_Inout_ UNICODE_STRING* Path); // Exported
 
 typedef NTSTATUS(__fastcall LdrpComputeLazyDllPath)(_Inout_ LDR_DLL_DATA* DllData);
+
+typedef NTSTATUS(__fastcall LdrpMapDllRetry)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef NTSTATUS(__fastcall LdrpMapDllFullPath)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef NTSTATUS(__fastcall LdrpMapDllNtFileName)(_Inout_ LOAD_CONTEXT* LoadContext, _In_ UNICODE_STRING* ObjName);
