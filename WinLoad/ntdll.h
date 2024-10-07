@@ -82,7 +82,8 @@ typedef SINGLE_LIST_ENTRY* LDRP_CSLIST;
 /*IN PROGRESS*/
 struct LDR_DLL_DATA
 {
-	char Unk1[12];
+	PWSTR DllPath;
+	char Unk1[8];
 	ULONG Flags;
 	PWSTR DllName;
 	char Unk2[58];
@@ -283,3 +284,7 @@ typedef NTSTATUS(__fastcall LdrpGetFullPath)(_In_ UNICODE_STRING* DllName, _Out_
 typedef NTSTATUS(__fastcall LdrpPreprocessDllName)(_In_ UNICODE_STRING* DllName, _Out_ UNICODE_STRING* ProcessedName, _In_opt_ LDR_DATA_TABLE_ENTRY* ParentLdrEntry, _Inout_ ULONG* LoadFlags);
 
 typedef NTSTATUS(__fastcall LdrpParseForwarderDescription)(_In_ char* Forwarder, _Out_ STRING* DllName, _Out_ char** ExportName, _In_ ULONG Ordinal);
+
+typedef UINT(__stdcall LdrStandardizeSystemPath)(_Inout_ UNICODE_STRING* path); // Exported
+
+//typedef NTSTATUS(__fastcall LdrpGetDllPath)(_In_ PWSTR DllName, a2, a3, a4, a5, a6, a7);
