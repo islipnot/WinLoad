@@ -4,16 +4,14 @@
 
 enum LOAD_CONTEXT_FLAGS
 {
+	Unknown1             = 0x0000008,
+	Unknown2             = 0x0000200,
+	Unknown3             = 0x0010000,
+	Unknown5             = 0x0080000,
+	Unknown4             = 0x0100000,
 	UseActivationContext = 0x0800000,
 	RedirectModuleImport = 0x2000000
 };
-
-/*
-- RedirectModuleImport is set in LdrpMapAndSnapDependency if 
-  LdrpShouldModuleImportBeRedirected returns true.
-
-- 
-*/
 
 enum LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {
@@ -103,13 +101,6 @@ struct LDR_DLL_DATA
 	char Unk2[58];
 };
 
-/*
-- Unk1, Unk2[56], DllPath, and PackageDirs are all seen being initialized in
-  LdrpComputeLazyDllPath.
-
-- 
-*/
-
 /*IN PROGRESS*/
 typedef struct LDRP_LOAD_CONTEXT
 {
@@ -121,19 +112,21 @@ typedef struct LDRP_LOAD_CONTEXT
 	NTSTATUS* pState;
 	LDR_DATA_TABLE_ENTRY* ParentLdrEntry;
 	LDR_DATA_TABLE_ENTRY* LdrEntry;
-	char Pad2[12];
+	char Pad2[8];
+	LDR_DATA_TABLE_ENTRY* ReplacedModule;
 	LDR_DATA_TABLE_ENTRY** DependencyLdrEntryArray;
 	ULONG DependencyCount;
-	char Pad3[4];
+	ULONG DependencysWithIAT;
 	IMAGE_THUNK_DATA32* IAT;
 	ULONG IATSize;
-	char Pad4[12];
+	char Pad3[8];
+	IMAGE_IMPORT_DESCRIPTOR* ImportDirectory;
 	ULONG OldIATProtect;
 	DWORD* GuardCFCheckFunctionPointer;
 	DWORD GuardCFCheckFunctionPointerVA;
 	ULONG Unk1;
 	int Unk2;
-	char Pad5[4];
+	char Pad4[4];
 	BYTE* DllSectionBase;
 	WCHAR DllPathBase;
 } LOAD_CONTEXT;
@@ -150,7 +143,9 @@ typedef struct LDRP_LOAD_CONTEXT
 
 - LOAD_CONTEXT::DependencyCount is initialized in LdrpMapAndSnapDependency
   along with LOAD_CONTEXT::DependencyLdrEntryArray. That array is filled
-  in LdrpLoadDependentModule.
+  in LdrpLoadDependentModule. LOAD_CONTEXT::DependencysWithIAT is initialized
+  in the same loop as DependencyCount, except its only incremented if the
+  import descriptors corresponding IAT isn't null.
 */
 
 struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
@@ -343,3 +338,6 @@ typedef NTSTATUS(__fastcall RtlpImageDirectoryEntryToDataEx)(_In_ void* Base, _I
 
 typedef NTSTATUS(__fastcall LdrpMapCleanModuleView)(_Inout_ LOAD_CONTEXT* LoadContext);
 
+typedef NTSTATUS(__fastcall LdrpProcessWork)(_Inout_ LOAD_CONTEXT* LoadContext, _In_ bool IsLoadOwner);
+
+typedef LDR_DATA_TABLE_ENTRY* (__fastcall LdrpHandleReplacedModule)(_Inout_ LDR_DATA_TABLE_ENTRY* LdrEntry);

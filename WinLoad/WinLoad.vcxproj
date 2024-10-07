@@ -133,7 +133,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="kernelbase.h" />
     <ClInclude Include="ntdll.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>

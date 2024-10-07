@@ -6,4 +6,3 @@
 #include <Windows.h>
 #include <winternl.h>
 #include <ntstatus.h>
-#include <winnt.h>
