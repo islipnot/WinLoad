@@ -2,6 +2,19 @@
 
 // Enums
 
+enum LOAD_CONTEXT_FLAGS
+{
+	Unknown1             = 0x800000,
+	RedirectModuleImport = 0x2000000
+};
+
+/*
+- RedirectModuleImport is set in LdrpMapAndSnapDependency if 
+  LdrpShouldModuleImportBeRedirected returns true.
+
+- 
+*/
+
 enum LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {
 	PackagedBinary          = 0x00000001,
@@ -104,11 +117,19 @@ typedef struct LDRP_LOAD_CONTEXT
 	LDR_DLL_DATA* DllData;
 	HMODULE Handle;
 	ULONG Flags;
-	char Pad2[4];
+	char Pad1[4];
 	NTSTATUS* pState;
 	LDR_DATA_TABLE_ENTRY* ParentLdrEntry; // The dll that the load context's corresponding dll is a dependency of
 	LDR_DATA_TABLE_ENTRY* LdrEntry; // Corresponding LdrEntry
-	char Pad3[72];
+	char Pad2[24];
+	IMAGE_THUNK_DATA32* IAT;
+	ULONG IAT_Size;
+	char Pad3[16];
+	DWORD* GuardCFCheckFunctionPointer;
+	DWORD GuardCFCheckFunctionPointerVA;
+	ULONG Unk1;
+	int Unk2;
+	char Pad4[8];
 	WCHAR DllPathBase;
 } LOAD_CONTEXT;
 
@@ -121,11 +142,6 @@ typedef struct LDRP_LOAD_CONTEXT
 - LDRP_LOAD_CONTEXT::DllPathBase is the base of an allocated buffer for the
   DllPath, the size being equal to DllPath->Length (Allocated along with the 
   load context via RtlAllocateHeap, total size being DllPath->Length + 0x6E).
-
-- I haven't fully reversed the meaning behind the possible flags for 
-  LDRP_LOAD_CONTEXT::Flags, though if you trace the flags back to their 
-  initialization in the execution path of LdrLoadDll, you can see they're
-  derived from DLL characteristics via LdrpDllCharacteristicsToLoadFlags.
 */
 
 struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
@@ -226,7 +242,7 @@ struct __LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/windows/k
 	RTL_BALANCED_NODE MappingInfoIndexNode;
 	ULONG_PTR OriginalBase;
 	LARGE_INTEGER LoadTime;
-	ULONG BaseNameHashValue;
+	ULONG BaseNameHashValue; // Calculated via LdrpHashUnicodeString
 	LDR_DLL_LOAD_REASON LoadReason;
 	ULONG ImplicitPathOptions;
 	ULONG ReferenceCount;
@@ -299,3 +315,15 @@ typedef NTSTATUS(__fastcall LdrpMapDllRetry)(_Inout_ LOAD_CONTEXT* LoadContext);
 typedef NTSTATUS(__fastcall LdrpMapDllFullPath)(_Inout_ LOAD_CONTEXT* LoadContext);
 
 typedef NTSTATUS(__fastcall LdrpMapDllNtFileName)(_Inout_ LOAD_CONTEXT* LoadContext, _In_ UNICODE_STRING* ObjName);
+
+typedef NTSTATUS(__fastcall LdrpMapDllWithSectionHandle)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef ULONG(__fastcall LdrpHashUnicodeString)(_In_ UNICODE_STRING* Str);
+
+typedef NTSTATUS(__fastcall LdrpCorProcessImports)(_Inout_ LDR_DATA_TABLE_ENTRY* LdrEntry);
+
+typedef NTSTATUS* (__fastcall LdrpMapAndSnapDependency)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef bool(__fastcall LdrpShouldModuleImportBeRedirected)(_In_ LDR_DATA_TABLE_ENTRY* LdrEntry);
+
+typedef NTSTATUS(__fastcall LdrpPrepareImportAddressTableForSnap)(_Inout_ LOAD_CONTEXT* LoadContext);
