@@ -5,7 +5,43 @@
 
 HOST_ENTRY* __fastcall ApiSetpSearchForApiSetHost(_In_ NAMESPACE_ENTRY* NsEntry, _In_ PWSTR HostName, _In_ UINT16 HostNameSz, _In_ NAMESPACE_HEADER* ApiSetMap)
 {
+	const DWORD HostEntryOffset = NsEntry->HostEntryOffset;
+	auto FirstHostEntry = reinterpret_cast<HOST_ENTRY*>(reinterpret_cast<char*>(ApiSetMap) + HostEntryOffset);
 
+	int UpperBound = 1;
+	int LowerBound = NsEntry->HostCount - 1;
+	int NextUpperBound = 1;
+
+	if (LowerBound >= 1) // Checking if the host count is greater than 1 (highest seen host count in windows is 2).
+	{
+		const DWORD dwHostNameSz = static_cast<DWORD>(HostNameSz);
+		const DWORD dwApiSetMap = reinterpret_cast<DWORD>(ApiSetMap);
+
+		do
+		{
+			const DWORD EntryIndex = (LowerBound + UpperBound) >> 1;
+			HOST_ENTRY* HostEntry = reinterpret_cast<HOST_ENTRY*>(dwApiSetMap + HostEntryOffset + (sizeof(HOST_ENTRY) * EntryIndex));
+
+			// The actual function uses RtlCompareUnicodeStrings here.
+			const int StrDif = _wcsnicmp(HostName, reinterpret_cast<PWSTR>(dwApiSetMap + HostEntry->NameOffset), HostEntry->NameLength >> 1);
+
+			if (StrDif < 0)
+			{
+				UpperBound = NextUpperBound;
+				LowerBound = EntryIndex - 1;
+			}
+			else
+			{
+				if (!StrDif) return HostEntry;
+
+				UpperBound = EntryIndex + 1;
+				NextUpperBound = EntryIndex + 1;
+			}
+		} 
+		while (UpperBound <= LowerBound);
+	}
+
+	return FirstHostEntry;
 }
 
 NAMESPACE_ENTRY* __fastcall ApiSetpSearchForApiSet(_In_ NAMESPACE_HEADER* ApiSetMap, _In_ PWSTR ApiName, _In_ UINT16 ApiSubNameSz)
@@ -30,31 +66,31 @@ NAMESPACE_ENTRY* __fastcall ApiSetpSearchForApiSet(_In_ NAMESPACE_HEADER* ApiSet
 		}
 	}
 
-	int UpperMidIndex = 0;
-	int LowerMidIndex = ApiSetMap->ApiSetCount - 1;
-	if (LowerMidIndex < 0) return nullptr;
+	int UpperBound = 0;
+	int LowerBound = ApiSetMap->ApiSetCount - 1;
+	if (LowerBound < 0) return nullptr;
 
 	DWORD HashOffset = ApiSetMap->HashOffset;
 	DWORD HashEntryOffset;
 
 	while (true) // Getting API set's corresponding HASH_TABLE entry
 	{
-		const int EntryIndex = (LowerMidIndex + UpperMidIndex) >> 1;
+		const int EntryIndex = (LowerBound + UpperBound) >> 1;
 		HashEntryOffset = HashOffset + (sizeof(HASH_ENTRY) * EntryIndex);
 
 		if (ApiHash < *reinterpret_cast<DWORD*>(reinterpret_cast<char*>(ApiSetMap) + HashEntryOffset))
 		{
-			LowerMidIndex = EntryIndex - 1;
+			LowerBound = EntryIndex - 1;
 		}
 		else
 		{
 			if (ApiHash <= *reinterpret_cast<DWORD*>(reinterpret_cast<char*>(ApiSetMap) + HashEntryOffset))
 				break;
 
-			UpperMidIndex = EntryIndex + 1;
+			UpperBound = EntryIndex + 1;
 		}
 
-		if (UpperMidIndex > LowerMidIndex)
+		if (UpperBound > LowerBound)
 			return nullptr;
 	}
 
