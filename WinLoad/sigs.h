@@ -2,7 +2,7 @@
 #include "pch.h"
 #include "ntdll.h"
 
-typedef NTSTATUS(__fastcall LdrpAllocatePlaceHolder)(_Inout_ UNICODE_STRING* DllPath, _In_ DLL_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ LDR_DLL_LOAD_REASON LoadReason, _In_ __LDR_DATA_TABLE_ENTRY* ParentEntry, _Out_ __LDR_DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
+typedef NTSTATUS(__fastcall LdrpAllocatePlaceHolder)(_Inout_ UNICODE_STRING* DllPath, _In_ DLL_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ DLL_LOAD_REASON LoadReason, _In_ DATA_TABLE_ENTRY* ParentEntry, _Out_ DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
 
 typedef LONG(__stdcall RtlCompareUnicodeStrings)(_In_ PWSTR Str1, _In_ UINT Sz1, _In_ PWSTR Str2, _In_ UINT Sz2, _In_ bool CaseInsensitive); // Not the same as RtlCompareUnicodeString
 
@@ -16,7 +16,7 @@ typedef PWSTR(__stdcall RtlGetNtSystemRoot)(); // Exported
 
 typedef NTSTATUS(__fastcall LdrpGetFullPath)(_In_ UNICODE_STRING* DllName, _Out_ UNICODE_STRING* DllPath);
 
-typedef NTSTATUS(__fastcall LdrpPreprocessDllName)(_In_ UNICODE_STRING* DllName, _Out_ UNICODE_STRING* ProcessedName, _In_opt_ LDR_DATA_TABLE_ENTRY* ParentLdrEntry, _Inout_ ULONG* LoadFlags);
+typedef NTSTATUS(__fastcall LdrpPreprocessDllName)(_In_ UNICODE_STRING* DllName, _Out_ UNICODE_STRING* ProcessedName, _In_opt_ DATA_TABLE_ENTRY* ParentLdrEntry, _Inout_ ULONG* LoadFlags);
 
 typedef NTSTATUS(__fastcall LdrpParseForwarderDescription)(_In_ char* Forwarder, _Out_ STRING* DllName, _Out_ char** ExportName, _In_ ULONG Ordinal);
 
@@ -40,9 +40,9 @@ typedef NTSTATUS* (__fastcall LdrpMapAndSnapDependency)(_Inout_ LOAD_CONTEXT* Lo
 
 typedef NTSTATUS(__fastcall LdrpPrepareImportAddressTableForSnap)(_Inout_ LOAD_CONTEXT* LoadContext);
 
-typedef bool(__fastcall LdrpShouldModuleImportBeRedirected)(_In_ LDR_DATA_TABLE_ENTRY* LdrEntry);
+typedef bool(__fastcall LdrpShouldModuleImportBeRedirected)(_In_ DATA_TABLE_ENTRY* LdrEntry);
 
-typedef IMAGE_IMPORT_DESCRIPTOR* (__fastcall LdrpGetImportDescriptorForSnap)(_Inout_ LOAD_CONTEXT* LoadContext);
+typedef IMPORT_DESCRIPTOR* (__fastcall LdrpGetImportDescriptorForSnap)(_Inout_ LOAD_CONTEXT* LoadContext);
 
 typedef NTSTATUS(__fastcall RtlpImageDirectoryEntryToDataEx)(_In_ void* Base, _In_ bool MappedAsImage, _In_ UINT16 DirectoryEntry, _Out_ ULONG* DirSize, _Out_ void** ResolvedAddress);
 
@@ -50,20 +50,34 @@ typedef NTSTATUS(__fastcall LdrpMapCleanModuleView)(_Inout_ LOAD_CONTEXT* LoadCo
 
 typedef NTSTATUS(__fastcall LdrpProcessWork)(_Inout_ LOAD_CONTEXT* LoadContext, _In_ bool IsLoadOwner);
 
-typedef LDR_DATA_TABLE_ENTRY* (__fastcall LdrpHandleReplacedModule)(_Inout_ LDR_DATA_TABLE_ENTRY* LdrEntry);
+typedef DATA_TABLE_ENTRY* (__fastcall LdrpHandleReplacedModule)(_Inout_ DATA_TABLE_ENTRY* LdrEntry);
 
 typedef PVOID(__fastcall LdrpQueueWork)(_Inout_ LOAD_CONTEXT* LoadContext);
 
 typedef NTSTATUS(__stdcall LdrpInitParallelLoadingSupport)();
 
-typedef NTSTATUS(__fastcall LdrpSnapModule)(_Inout_ LOAD_CONTEXT* LoadContext);
+typedef NTSTATUS(__fastcall LdrpSnapModule)(_Inout_ LOAD_CONTEXT* LoadContext); // REVERSE THIS FULLY
 
 typedef NTSTATUS(__stdcall LdrLoadDll)(_In_ ULONG dwFlags, _In_opt_ ULONG DllCharacteristics, _In_ UNICODE_STRING* DllName, _Inout_ HMODULE* pHandle); // Exported
 
 typedef void(__fastcall LdrpInitializeDllPath)(_In_ PWSTR DllName, _In_ ULONG dwFlags, _Inout_ DLL_PATH_DATA* DllData);
 
-typedef LDR_DATA_TABLE_ENTRY* (__fastcall LdrpAllocateModuleEntry)(_Inout_ LOAD_CONTEXT* LoadContext);
+typedef DATA_TABLE_ENTRY* (__fastcall LdrpAllocateModuleEntry)(_Inout_ LOAD_CONTEXT* LoadContext);
 
-typedef NTSTATUS(__fastcall LdrpFindOrPrepareLoadingModule)(_Inout_ UNICODE_STRING DllPath, _In_ DLL_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ LDR_DLL_LOAD_REASON LdrFlags, _In_ __LDR_DATA_TABLE_ENTRY* ParentEntry, _Out_ __LDR_DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
+typedef NTSTATUS(__fastcall LdrpFindOrPrepareLoadingModule)(_Inout_ UNICODE_STRING DllPath, _In_ DLL_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ DLL_LOAD_REASON LdrFlags, _In_ DATA_TABLE_ENTRY* ParentEntry, _Out_ DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
 
 typedef NTSTATUS(__fastcall LdrpLoadKnownDll)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef NTSTATUS(__fastcall LdrpCorValidateImage)(_In_ void* Base);
+
+typedef void* (__stdcall RtlImageDirectoryEntryToData)(_In_ void* Base, _In_ bool MappedAsImage, _In_ UINT16 DirEntry, _Out_ ULONG* DirSize); // Exported
+
+typedef NTSTATUS(__fastcall RtlpImageDirectoryEntryToDataEx)(_In_ void* Base, _In_ bool MappedAsImage, _In_ UINT16 DirEntry, _Out_ ULONG* DirSize, _Out_ void** ResolvedAddress);
+
+typedef NTSTATUS(__stdcall RtlImageNtHeaderEx)(_In_ ULONG Flags, _In_ DWORD* Base, _In_ ULONG Size, _In_opt_ int ReservedAlwaysZero, _Out_ NT_HEADERS** NtHeaders); // Exported
+
+typedef NTSTATUS(__fastcall RtlpImageDirectoryEntryToData64)(_In_ BYTE* Base, _In_ bool MappedAsImage, _In_ UINT16 DirectoryEntry, _Out_ ULONG* DirectorySize, _In_ NT_HEADERS* NtHeaders, _Out_ void** ResolvedAddress);
+
+typedef void* (__stdcall RtlAddressInSectionTable)(_In_ NT_HEADERS* NtHeaders, _In_ BYTE* Base, _In_ DWORD VirtAddress);
+
+typedef SECTION_HEADER* (__thiscall RtlSectionTableFromVirtualAddress)(_In_ NT_HEADERS* NtHeaders, _In_ DWORD VirtAddress);

@@ -2,7 +2,7 @@
 
 // Enums
 
-enum LOAD_CONTEXT_FLAGS
+typedef enum _LDR_LOAD_CONTEXT_FLAGS
 {
 	Unknown0             = 0x0000001,
 	Unknown1             = 0x0000008,
@@ -12,11 +12,13 @@ enum LOAD_CONTEXT_FLAGS
 	Unknown3             = 0x0010000,
 	Unknown5             = 0x0080000,
 	Unknown4             = 0x0100000,
+	ContextCorImage      = 0x0400000, // LdrpCompleteMapModule
 	UseActivationContext = 0x0800000,
-	RedirectModule       = 0x2000000 // LdrpMapAndSnapDependency
-};
+	ContextCorILOnly     = 0x1000000, // LdrpCompleteMapModule
+	RedirectModule       = 0x2000000  // LdrpMapAndSnapDependency
+} LDR_LOAD_CONTEXT_FLAGS, LOAD_CONTEXT_FLAGS;
 
-enum LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
+typedef enum _LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {
 	PackagedBinary          = 0x00000001,
 	MarkedForRemoval        = 0x00000002,
@@ -42,9 +44,9 @@ enum LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/km/ntoskrn
 	ChpeImage               = 0x02000000,
 	Redirected              = 0x10000000,
 	CompatDatabaseProcessed = 0x80000000,
-};
+} LDR_ENTRY_MASKS;
 
-enum LDR_DLL_LOAD_REASON // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
+typedef enum _LDR_DLL_LOAD_REASON // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {
 	LoadReasonStaticDependency           =  0,
 	LoadReasonStaticForwarderDependency  =  1,
@@ -56,9 +58,9 @@ enum LDR_DLL_LOAD_REASON // https://www.geoffchappell.com/studies/windows/km/nto
 	LoadReasonEnclavePrimary             =  7,
 	LoadReasonEnclaveDependency          =  8,
 	LoadReasonUnknown                    = -1
-};
+} LDR_DLL_LOAD_REASON, DLL_LOAD_REASON;
 
-enum LDR_DDAG_STATE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_state.htm
+typedef enum _LDR_DDAG_STATE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_state.htm
 {
 	LdrModulesMerged                 = -5,
 	LdrModulesInitError              = -4,
@@ -75,9 +77,9 @@ enum LDR_DDAG_STATE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl
 	LdrModulesReadyToInit            =  7,
 	LdrModulesInitializing           =  8,
 	LdrModulesReadyToRun             =  9
-};
+} LDR_DDAG_STATE;
 
-enum API_MASKS // Used in ApiSetResolveToHost to check the validity of an API set's name
+typedef enum _API_MASKS // Used in ApiSetResolveToHost to check the validity of an API set's name
 {
 	API_HIGH      = 0x0002D0049,
 	EXT_HIGH      = 0x0002D0054,
@@ -85,16 +87,24 @@ enum API_MASKS // Used in ApiSetResolveToHost to check the validity of an API se
 	EXT_LOW       = 0x000580045,
 	API_MASK_LOW  = 0x0FFDFFFDF,
 	API_MASK_HIGH = 0x0FFFFFFDF
-};
+} API_MASKS;
 
 // Typedefs
 
 typedef SINGLE_LIST_ENTRY* LDRP_CSLIST;
 
-// Structs (comments next to members are the functions where they're initialized)
+typedef IMAGE_NT_HEADERS32 NT_HEADERS;
+
+typedef IMAGE_SECTION_HEADER SECTION_HEADER;
+
+typedef IMAGE_OPTIONAL_HEADER32 OPTIONAL_HEADER;
+
+typedef IMAGE_IMPORT_DESCRIPTOR IMPORT_DESCRIPTOR;
+
+// Structs (comments are the functions where they're initialized)
 
 /* UNFINISHED - REAL STRUCT NAME UNKNOWN */
-struct DLL_PATH_DATA // LdrLoadDll
+typedef struct _LDR_DLL_PATH_DATA // LdrLoadDll
 {
 	PWSTR DllPath; // LdrpInitializeDllPath
 	char Unk1[4];
@@ -102,10 +112,10 @@ struct DLL_PATH_DATA // LdrLoadDll
 	ULONG Flags;   // LdrpInitializeDllPath
 	PWSTR DllName; // LdrpInitializeDllPath
 	char Unk2[58];
-};
+} LDR_DLL_PATH_DATA, DLL_PATH_DATA;
 
 /* UNFINISHED */
-typedef struct LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder
+typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder
 {
 	UNICODE_STRING DllPath; // LdrpAllocatePlaceHolder
 	DLL_PATH_DATA* DllData; // LdrpAllocatePlaceHolder
@@ -134,7 +144,7 @@ typedef struct LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder
 	char Pad2[4];
 	BYTE* DllSectionBase;
 	WCHAR DllPathBase;
-} LOAD_CONTEXT;
+} LDRP_LOAD_CONTEXT, LOAD_CONTEXT;
 
 /*
 - LOAD_CONTEXT::DllPathBase is the base of an allocated buffer for the DllPath, 
@@ -142,7 +152,7 @@ typedef struct LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder
   via RtlAllocateHeap, total size being DllPath->Length + 0x6E).
 */
 
-struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
+typedef struct _LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
 {
 	LIST_ENTRY Modules;
 	struct LDR_SERVICE_TAG_RECORD* ServiceTagList;
@@ -154,17 +164,17 @@ struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrn
 	LDR_DDAG_STATE State;
 	SINGLE_LIST_ENTRY* CondenseLink;
 	ULONG PreorderNumber;
-};
+} LDR_DDAG_NODE;
 
-struct RTL_BALANCED_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/shared/ntdef/rtl_balanced_node.htm
+typedef struct _RTL_BALANCED_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/shared/ntdef/rtl_balanced_node.htm
 {
 	union 
 	{
-		RTL_BALANCED_NODE* Children[2];
+		struct _RTL_BALANCED_NODE* Children[2];
 		struct 
 		{
-			RTL_BALANCED_NODE* Left;
-			RTL_BALANCED_NODE* Right;
+			struct _RTL_BALANCED_NODE* Left;
+			struct _RTL_BALANCED_NODE* Right;
 		};
 	};
 	union 
@@ -173,9 +183,9 @@ struct RTL_BALANCED_NODE // https://www.geoffchappell.com/studies/windows/km/nto
 		UCHAR Balance : 2;
 		ULONG_PTR ParentValue;
 	};
-}; 
+} RTL_BALANCED_NODE;
 
-struct __LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
+typedef struct ___LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {
 	LIST_ENTRY InLoadOrderLinks;
 	LIST_ENTRY InMemoryOrderLinks;
@@ -241,23 +251,23 @@ struct __LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/windows/k
 	ULONG_PTR OriginalBase;
 	LARGE_INTEGER LoadTime;
 	ULONG BaseNameHashValue; // Calculated via LdrpHashUnicodeString
-	LDR_DLL_LOAD_REASON LoadReason;
+	DLL_LOAD_REASON LoadReason;
 	ULONG ImplicitPathOptions;
 	ULONG ReferenceCount;
 	ULONG DependentLoadFlags;
 	UCHAR SigningLevel;
-};
+} __LDR_DATA_TABLE_ENTRY, DATA_TABLE_ENTRY;
 
-typedef struct API_SET_VALUE_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
+typedef struct _API_SET_VALUE_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
 	DWORD Flags;
 	DWORD NameOffset;
 	DWORD NameLength;
 	DWORD ValueOffset;
 	DWORD ValueLength;
-} HOST_ENTRY;
+} API_SET_VALUE_ENTRY, HOST_ENTRY;
 
-typedef struct NAMESPACE_HEADER // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
+typedef struct _NAMESPACE_HEADER // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
 	DWORD SchemaExt;
 	DWORD MapSizeByte;
@@ -266,9 +276,9 @@ typedef struct NAMESPACE_HEADER // https://www.geoffchappell.com/studies/windows
 	DWORD NsEntryOffset;
 	DWORD HashOffset;
 	DWORD Multiplier;
-} API_SET_MAP;
+} NAMESPACE_HEADER, API_SET_MAP;
 
-typedef struct API_SET_NAMESPACE_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
+typedef struct _API_SET_NAMESPACE_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
 	DWORD Flags;
 	DWORD ApiNameOffset;
@@ -276,10 +286,10 @@ typedef struct API_SET_NAMESPACE_ENTRY // https://www.geoffchappell.com/studies/
 	DWORD ApiSubNameSz;
 	DWORD HostEntryOffset;
 	DWORD HostCount;
-} NAMESPACE_ENTRY;
+} API_SET_NAMESPACE_ENTRY, NAMESPACE_ENTRY;
 
-struct HASH_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
+typedef struct _HASH_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
 	DWORD ApiHash;
 	DWORD ApiIndex;
-};
+} HASH_ENTRY;
