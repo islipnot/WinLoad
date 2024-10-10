@@ -103,41 +103,38 @@ struct LDR_DLL_DATA
 };
 
 /*IN PROGRESS*/
-typedef struct LDRP_LOAD_CONTEXT
+typedef struct LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder
 {
 	UNICODE_STRING DllPath;
 	LDR_DLL_DATA* DllData;
-	HMODULE Handle;
+	HMODULE Handle; // LdrpMapDllNtFileName
 	ULONG Flags;
 	char Pad1[4];
 	NTSTATUS* pState;
 	LDR_DATA_TABLE_ENTRY* ParentLdrEntry;
 	LDR_DATA_TABLE_ENTRY* LdrEntry;
-	char Pad2[8];
+	DWORD* LdrpWorkQueue; // LdrpQueueWork
+	DWORD** pLdrpWorkQueue; // LdrpQueueWork
 	LDR_DATA_TABLE_ENTRY* ReplacedModule;
 	LDR_DATA_TABLE_ENTRY** DependencyLdrEntryArray;
 	ULONG DependencyCount;
 	ULONG DependencysWithIAT;
 	IMAGE_THUNK_DATA32* IAT;
 	ULONG IATSize;
-	char Pad3[8];
+	ULONG DependencyIndex; // LdrpSnapModule (DependencyLdrEntryArray)
+	ULONG IATIndex; // LdrpSnapModule
 	IMAGE_IMPORT_DESCRIPTOR* ImportDirectory;
 	ULONG OldIATProtect;
 	DWORD* GuardCFCheckFunctionPointer;
 	DWORD GuardCFCheckFunctionPointerVA;
 	ULONG Unk1;
 	int Unk2;
-	char Pad4[4];
+	char Pad2[4];
 	BYTE* DllSectionBase;
 	WCHAR DllPathBase;
 } LOAD_CONTEXT;
 
-/* 
-- Instances of LOAD_CONTEXT are initialized in LdrpAllocatePlaceHolder,
-  though not all of the instances member's are initialized there.
-
-- LOAD_CONTEXT::Handle is initialized near the end of LdrpMapDllNtFileName.
-
+/*
 - LOAD_CONTEXT::DllPathBase is the base of an allocated buffer for the DllPath, 
   the size being equal to DllPath->Length (Allocated along with the load context 
   via RtlAllocateHeap, total size being DllPath->Length + 0x6E).
@@ -180,7 +177,7 @@ struct RTL_BALANCED_NODE // https://www.geoffchappell.com/studies/windows/km/nto
 		UCHAR Balance : 2;
 		ULONG_PTR ParentValue;
 	};
-};
+}; 
 
 struct __LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {

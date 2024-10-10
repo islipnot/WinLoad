@@ -51,3 +51,9 @@ typedef NTSTATUS(__fastcall LdrpMapCleanModuleView)(_Inout_ LOAD_CONTEXT* LoadCo
 typedef NTSTATUS(__fastcall LdrpProcessWork)(_Inout_ LOAD_CONTEXT* LoadContext, _In_ bool IsLoadOwner);
 
 typedef LDR_DATA_TABLE_ENTRY* (__fastcall LdrpHandleReplacedModule)(_Inout_ LDR_DATA_TABLE_ENTRY* LdrEntry);
+
+typedef PVOID(__fastcall LdrpQueueWork)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef NTSTATUS(__stdcall LdrpInitParallelLoadingSupport)();
+
+typedef NTSTATUS(__fastcall LdrpSnapModule)(LOAD_CONTEXT* LoadContext);

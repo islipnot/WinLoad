@@ -1,5 +1,3 @@
-#define DONT_DEFINE_FUNCTIONS
-
 #include "pch.h"
 #include "ntdll.h"
 
