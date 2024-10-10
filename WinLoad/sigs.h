@@ -2,7 +2,7 @@
 #include "pch.h"
 #include "ntdll.h"
 
-typedef NTSTATUS(__fastcall LdrpAllocatePlaceHolder)(UNICODE_STRING* DllPath, LDR_DLL_DATA* pDllData, ULONG Flags, INT LoadReason, LDR_DATA_TABLE_ENTRY* ParentEntry, LDR_DATA_TABLE_ENTRY** pLdrEntry, NTSTATUS* State);
+typedef NTSTATUS(__fastcall LdrpAllocatePlaceHolder)(_Inout_ UNICODE_STRING* DllPath, _In_ DLL_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ LDR_DLL_LOAD_REASON LoadReason, _In_ __LDR_DATA_TABLE_ENTRY* ParentEntry, _Out_ __LDR_DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
 
 typedef LONG(__stdcall RtlCompareUnicodeStrings)(_In_ PWSTR Str1, _In_ UINT Sz1, _In_ PWSTR Str2, _In_ UINT Sz2, _In_ bool CaseInsensitive); // Not the same as RtlCompareUnicodeString
 
@@ -22,7 +22,7 @@ typedef NTSTATUS(__fastcall LdrpParseForwarderDescription)(_In_ char* Forwarder,
 
 typedef UINT(__stdcall LdrStandardizeSystemPath)(_Inout_ UNICODE_STRING* Path); // Exported
 
-typedef NTSTATUS(__fastcall LdrpComputeLazyDllPath)(_Inout_ LDR_DLL_DATA* DllData);
+typedef NTSTATUS(__fastcall LdrpComputeLazyDllPath)(_Inout_ DLL_PATH_DATA* DllData);
 
 typedef NTSTATUS(__fastcall LdrpMapDllRetry)(_Inout_ LOAD_CONTEXT* LoadContext);
 
@@ -56,4 +56,14 @@ typedef PVOID(__fastcall LdrpQueueWork)(_Inout_ LOAD_CONTEXT* LoadContext);
 
 typedef NTSTATUS(__stdcall LdrpInitParallelLoadingSupport)();
 
-typedef NTSTATUS(__fastcall LdrpSnapModule)(LOAD_CONTEXT* LoadContext);
+typedef NTSTATUS(__fastcall LdrpSnapModule)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef NTSTATUS(__stdcall LdrLoadDll)(_In_ ULONG dwFlags, _In_opt_ ULONG DllCharacteristics, _In_ UNICODE_STRING* DllName, _Inout_ HMODULE* pHandle); // Exported
+
+typedef void(__fastcall LdrpInitializeDllPath)(_In_ PWSTR DllName, _In_ ULONG dwFlags, _Inout_ DLL_PATH_DATA* DllData);
+
+typedef LDR_DATA_TABLE_ENTRY* (__fastcall LdrpAllocateModuleEntry)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef NTSTATUS(__fastcall LdrpFindOrPrepareLoadingModule)(_Inout_ UNICODE_STRING DllPath, _In_ DLL_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ LDR_DLL_LOAD_REASON LdrFlags, _In_ __LDR_DATA_TABLE_ENTRY* ParentEntry, _Out_ __LDR_DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
+
+typedef NTSTATUS(__fastcall LdrpLoadKnownDll)(_Inout_ LOAD_CONTEXT* LoadContext);

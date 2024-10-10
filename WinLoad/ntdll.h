@@ -6,12 +6,14 @@ enum LOAD_CONTEXT_FLAGS
 {
 	Unknown0             = 0x0000001,
 	Unknown1             = 0x0000008,
+	Unknown6             = 0x0000100, // used in LdrpMapDllNtFileName, 
 	Unknown2             = 0x0000200,
+	Unknown7             = 0x0008000, // LdrpAllocatePlaceHolder
 	Unknown3             = 0x0010000,
 	Unknown5             = 0x0080000,
 	Unknown4             = 0x0100000,
 	UseActivationContext = 0x0800000,
-	RedirectModuleImport = 0x2000000
+	RedirectModule       = 0x2000000 // LdrpMapAndSnapDependency
 };
 
 enum LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
@@ -89,46 +91,46 @@ enum API_MASKS // Used in ApiSetResolveToHost to check the validity of an API se
 
 typedef SINGLE_LIST_ENTRY* LDRP_CSLIST;
 
-// Structs
+// Structs (comments next to members are the functions where they're initialized)
 
-/*IN PROGRESS*/
-struct LDR_DLL_DATA
+/* UNFINISHED - REAL STRUCT NAME UNKNOWN */
+struct DLL_PATH_DATA // LdrLoadDll
 {
-	PWSTR DllPath;
+	PWSTR DllPath; // LdrpInitializeDllPath
 	char Unk1[4];
 	PWSTR PackageDirs;
-	ULONG Flags;
-	PWSTR DllName;
+	ULONG Flags;   // LdrpInitializeDllPath
+	PWSTR DllName; // LdrpInitializeDllPath
 	char Unk2[58];
 };
 
-/*IN PROGRESS*/
+/* UNFINISHED */
 typedef struct LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder
 {
-	UNICODE_STRING DllPath;
-	LDR_DLL_DATA* DllData;
-	HMODULE Handle; // LdrpMapDllNtFileName
-	ULONG Flags;
+	UNICODE_STRING DllPath; // LdrpAllocatePlaceHolder
+	DLL_PATH_DATA* DllData; // LdrpAllocatePlaceHolder
+	HMODULE Handle;   // LdrpMapDllNtFileName
+	ULONG Flags;      // LdrpAllocatePlaceHolder
 	char Pad1[4];
-	NTSTATUS* pState;
-	LDR_DATA_TABLE_ENTRY* ParentLdrEntry;
-	LDR_DATA_TABLE_ENTRY* LdrEntry;
-	DWORD* LdrpWorkQueue; // LdrpQueueWork
+	NTSTATUS* pState; // LdrpAllocatePlaceHolder
+	LDR_DATA_TABLE_ENTRY* ParentLdrEntry; // LdrpAllocatePlaceHolder
+	LDR_DATA_TABLE_ENTRY* LdrEntry;       // LdrpAllocateModuleEntry
+	DWORD* LdrpWorkQueue;   // LdrpQueueWork
 	DWORD** pLdrpWorkQueue; // LdrpQueueWork
 	LDR_DATA_TABLE_ENTRY* ReplacedModule;
-	LDR_DATA_TABLE_ENTRY** DependencyLdrEntryArray;
-	ULONG DependencyCount;
-	ULONG DependencysWithIAT;
+	LDR_DATA_TABLE_ENTRY** DependencyEntryList; // LdrpMapAndSnapDependency
+	ULONG DependencyCount;    // LdrpMapAndSnapDependency
+	ULONG DependencysWithIAT; // LdrpMapAndSnapDependency
 	IMAGE_THUNK_DATA32* IAT;
 	ULONG IATSize;
-	ULONG DependencyIndex; // LdrpSnapModule (DependencyLdrEntryArray)
-	ULONG IATIndex; // LdrpSnapModule
+	ULONG DependencyIndex; // LdrpSnapModule (DependencyEntryList)
+	ULONG IATIndex;        // LdrpSnapModule
 	IMAGE_IMPORT_DESCRIPTOR* ImportDirectory;
 	ULONG OldIATProtect;
 	DWORD* GuardCFCheckFunctionPointer;
 	DWORD GuardCFCheckFunctionPointerVA;
-	ULONG Unk1;
-	int Unk2;
+	ULONG UnknownDWORD;
+	int UnknownINT;
 	char Pad2[4];
 	BYTE* DllSectionBase;
 	WCHAR DllPathBase;
@@ -138,12 +140,6 @@ typedef struct LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder
 - LOAD_CONTEXT::DllPathBase is the base of an allocated buffer for the DllPath, 
   the size being equal to DllPath->Length (Allocated along with the load context 
   via RtlAllocateHeap, total size being DllPath->Length + 0x6E).
-
-- LOAD_CONTEXT::DependencyCount is initialized in LdrpMapAndSnapDependency
-  along with LOAD_CONTEXT::DependencyLdrEntryArray. That array is filled
-  in LdrpLoadDependentModule. LOAD_CONTEXT::DependencysWithIAT is initialized
-  in the same loop as DependencyCount, except its only incremented if the
-  import descriptors corresponding IAT isn't null.
 */
 
 struct LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
