@@ -101,6 +101,10 @@ typedef IMAGE_OPTIONAL_HEADER32 OPTIONAL_HEADER;
 
 typedef IMAGE_IMPORT_DESCRIPTOR IMPORT_DESCRIPTOR;
 
+typedef IMAGE_COR20_HEADER COM_DESCRIPTOR, COR20_HEADER, CLR_HEADER;
+
+typedef IMAGE_BASE_RELOCATION BASE_RELOCATION, BASE_RELOC;
+
 // Structs (comments are the functions where they're initialized)
 
 /* UNFINISHED - REAL STRUCT NAME UNKNOWN */
@@ -293,3 +297,9 @@ typedef struct _HASH_ENTRY // https://www.geoffchappell.com/studies/windows/win3
 	DWORD ApiHash;
 	DWORD ApiIndex;
 } HASH_ENTRY;
+
+typedef struct _RELOC_DATA
+{
+	WORD Offset : 12;
+	WORD Type : 4;
+} RELOC_DATA;

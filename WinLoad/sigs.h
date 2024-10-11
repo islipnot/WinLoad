@@ -81,3 +81,15 @@ typedef NTSTATUS(__fastcall RtlpImageDirectoryEntryToData64)(_In_ BYTE* Base, _I
 typedef void* (__stdcall RtlAddressInSectionTable)(_In_ NT_HEADERS* NtHeaders, _In_ BYTE* Base, _In_ DWORD VirtAddress);
 
 typedef SECTION_HEADER* (__thiscall RtlSectionTableFromVirtualAddress)(_In_ NT_HEADERS* NtHeaders, _In_ DWORD VirtAddress);
+
+typedef NTSTATUS(__fastcall LdrpCompleteMapModule)(_In_ LOAD_CONTEXT* LoadContext, _In_ NT_HEADERS* NtHeaders, _In_ NTSTATUS ImageStatus);
+
+typedef bool(__fastcall LdrpIsILOnlyImage)(_In_ void* base);
+
+typedef NTSTATUS(__fastcall LdrpRelocateImage)(_In_ void* base, _In_ ULONG LoadContextUnknownVar1, _In_ NT_HEADERS* NtHeaders, _In_ UNICODE_STRING* DllName);
+
+typedef NTSTATUS(__fastcall LdrpProtectAndRelocateImage)(_In_ void* base);
+
+typedef NTSTATUS(__fastcall LdrRelocateImageWithBias)(_In_ void* base);
+
+typedef RELOC_DATA* (__fastcall LdrProcessRelocationBlockLongLong)(_In_ UINT16 machine, _In_ BASE_RELOC* RelocBlock, _In_ UINT EntryCount, _Inout_ RELOC_DATA* RelocData, _In_ DWORD LowBaseDif, _In_ DWORD HighBaseDif);

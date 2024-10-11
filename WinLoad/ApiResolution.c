@@ -4,7 +4,7 @@
 HOST_ENTRY* __fastcall ApiSetpSearchForApiSetHost(NAMESPACE_ENTRY* NsEntry, PWSTR HostName, UINT16 HostNameSz, NAMESPACE_HEADER* ApiSetMap)
 {
 	const DWORD HostEntryOffset = NsEntry->HostEntryOffset;
-	auto FirstHostEntry = (HOST_ENTRY*)((char*)(ApiSetMap) + HostEntryOffset);
+	HOST_ENTRY* FirstHostEntry = (HOST_ENTRY*)((char*)(ApiSetMap) + HostEntryOffset);
 
 	int UpperBound = 1;
 	int LowerBound = NsEntry->HostCount - 1;
@@ -71,7 +71,7 @@ NAMESPACE_ENTRY* __fastcall ApiSetpSearchForApiSet(NAMESPACE_HEADER* ApiSetMap, 
 	DWORD HashOffset = ApiSetMap->HashOffset;
 	DWORD HashEntryOffset;
 
-	while (1) // Getting API set's corresponding HASH_TABLE entry
+	while (true) // Getting API set's corresponding HASH_TABLE entry
 	{
 		const int EntryIndex = (LowerBound + UpperBound) >> 1;
 		HashEntryOffset = HashOffset + (sizeof(HASH_ENTRY) * EntryIndex);
@@ -98,7 +98,7 @@ NAMESPACE_ENTRY* __fastcall ApiSetpSearchForApiSet(NAMESPACE_HEADER* ApiSetMap, 
 	if (!NsEntry) return 0;
 
 	// The actual function uses RtlCompareUnicodeStrings here, but that's not worth calling GetProcAddress for.
-	if (_wcsnicmp(ApiName, ((char*)ApiSetMap + NsEntry->ApiNameOffset), ApiSubNameSz) == 0)
+	if (_wcsnicmp(ApiName, (PCWSTR)((char*)ApiSetMap + NsEntry->ApiNameOffset), ApiSubNameSz) == 0)
 		return NsEntry;
 
 	return 0;
@@ -154,7 +154,7 @@ NTSTATUS __fastcall ApiSetResolveToHost(NAMESPACE_HEADER* ApiSetMap, UNICODE_STR
 					{
 						resolved = true;
 						HostName->Buffer = (PWSTR)((char*)ApiSetMap + HostEntry->ValueOffset);
-						HostName->MaximumLength = HostName->Length = HostEntry->ValueLength;
+						HostName->MaximumLength = HostName->Length = (USHORT)HostEntry->ValueLength;
 					}
 				}
 			}
