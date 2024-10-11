@@ -3,4 +3,4 @@
 - Currently targeting the x86 image loader.
 
 ## Credits
-- [Geoffchappell.com](https://www.geoffchappell.com) - helpful in understanding and reversing undocumented or partially documented Windows structures.
+- [Geoffchappell.com](https://www.geoffchappell.com) helpful in understanding and reversing undocumented or partially documented Windows structures.
