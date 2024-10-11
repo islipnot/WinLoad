@@ -93,3 +93,7 @@ typedef NTSTATUS(__fastcall LdrpProtectAndRelocateImage)(_In_ void* base);
 typedef NTSTATUS(__fastcall LdrRelocateImageWithBias)(_In_ void* base);
 
 typedef RELOC_DATA* (__fastcall LdrProcessRelocationBlockLongLong)(_In_ UINT16 machine, _In_ BASE_RELOC* RelocBlock, _In_ UINT EntryCount, _Inout_ RELOC_DATA* RelocData, _In_ DWORD LowBaseDif, _In_ DWORD HighBaseDif);
+
+typedef NTSTATUS(__fastcall LdrpProcessMappedModule)(_Inout_ DATA_TABLE_ENTRY* LdrEntry, _In_ ULONG ContextFlags);
+
+typedef bool(__fastcall LdrpValidateEntrySection)(_In_ DATA_TABLE_ENTRY* LdrEntry);

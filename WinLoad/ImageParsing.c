@@ -3,6 +3,8 @@
 
 extern unsigned char _addcarry_u32(unsigned char c_in, unsigned int src1, unsigned int src2, unsigned int* sum_out);
 
+extern unsigned char _subborrow_u32(unsigned char b_in, unsigned int src1, unsigned int src2, unsigned int* diff_out);
+
 SECTION_HEADER* RtlSectionTableFromVirtualAddress(NT_HEADERS* NtHeaders, DWORD VirtAddr) // 1:1 sig in sigs.h
 {
 	const UINT NumberOfSections = (UINT)NtHeaders->FileHeader.NumberOfSections;
@@ -165,6 +167,15 @@ void* RtlImageDirectoryEntryToData(void* base, bool MappedAsImage, USHORT DirEnt
 		return 0;
 	}
 	else return ResolvedAddress;
+}
+
+bool LdrpValidateEntrySection(DATA_TABLE_ENTRY* LdrEntry)
+{
+	NT_HEADERS* NtHeaders;
+	RtlImageNtHeaderEx(3u, (DWORD*)LdrEntry->DllBase, 0, &NtHeaders);
+
+	const UINT AddressOfEP = NtHeaders->OptionalHeader.AddressOfEntryPoint;
+	return !AddressOfEP || !LdrEntry->EntryPoint || AddressOfEP >= NtHeaders->OptionalHeader.SizeOfHeaders;
 }
 
 NTSTATUS LdrpCorValidateImage(void* base)

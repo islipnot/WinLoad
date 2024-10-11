@@ -69,7 +69,7 @@ typedef enum _LDR_DDAG_STATE // https://www.geoffchappell.com/studies/windows/km
 	LdrModulesUnloading              = -1,
 	LdrModulesPlaceHolder            =  0,
 	LdrModulesMapping                =  1,
-	LdrModulesMapped                 =  2,
+	LdrModulesMapped                 =  2, // LdrpProcessMappedModule
 	LdrModulesWaitingForDependencies =  3,
 	LdrModulesSnapping               =  4,
 	LdrModulesSnapped                =  5,
@@ -124,7 +124,45 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder
 	UNICODE_STRING DllPath; // LdrpAllocatePlaceHolder
 	DLL_PATH_DATA* DllData; // LdrpAllocatePlaceHolder
 	HMODULE Handle;   // LdrpMapDllNtFileName
-	ULONG Flags;      // LdrpAllocatePlaceHolder
+	union
+	{
+		ULONG Flags;      // LdrpAllocatePlaceHolder
+		struct
+		{
+			ULONG Unk1  : 1;
+			ULONG Unk2  : 1;
+			ULONG Unk3  : 1;
+			ULONG Unk4  : 1;
+			ULONG Unk5  : 1;
+			ULONG Unk6  : 1;
+			ULONG Unk7  : 1;
+			ULONG Unk8  : 1;
+			ULONG Unk9  : 1;
+			ULONG Unk10 : 1;
+			ULONG Unk11 : 1;
+			ULONG Unk12 : 1;
+			ULONG Unk13 : 1;
+			ULONG Unk14 : 1;
+			ULONG Unk15 : 1;
+			ULONG Unk16 : 1;
+			ULONG Unk17 : 1;
+			ULONG Unk18 : 1;
+			ULONG Unk19 : 1;
+			ULONG Unk20 : 1;
+			ULONG Unk21 : 1;
+			ULONG Unk22 : 1;
+			ULONG Unk23 : 1;
+			ULONG Unk24 : 1;
+			ULONG Unk25 : 1;
+			ULONG Unk26 : 1;
+			ULONG ContextCorImage      : 1;
+			ULONG UseActivationContext : 1;
+			ULONG ContextCorILOnly     : 1;
+			ULONG RedirectModule       : 1;
+			ULONG Unk31 : 1;
+			ULONG Unk32 : 1;
+		};
+	};
 	char Pad1[4];
 	NTSTATUS* pState; // LdrpAllocatePlaceHolder
 	LDR_DATA_TABLE_ENTRY* ParentLdrEntry; // LdrpAllocatePlaceHolder
@@ -199,7 +237,7 @@ typedef struct ___LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/
 		LIST_ENTRY InProgressLinks;
 	};
 	PVOID DllBase;
-	PVOID EntryPoint;
+	PVOID EntryPoint; // LdrpProcessMappedModule
 	ULONG SizeOfImage;
 	UNICODE_STRING FullDllName;
 	UNICODE_STRING BaseDllName;
@@ -252,7 +290,7 @@ typedef struct ___LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/
 	PVOID SwitchBackContext;
 	RTL_BALANCED_NODE BaseAddressIndexNode;
 	RTL_BALANCED_NODE MappingInfoIndexNode;
-	ULONG_PTR OriginalBase;
+	ULONG_PTR OriginalBase; // LdrpProcessMappedModule
 	LARGE_INTEGER LoadTime;
 	ULONG BaseNameHashValue; // Calculated via LdrpHashUnicodeString
 	DLL_LOAD_REASON LoadReason;
