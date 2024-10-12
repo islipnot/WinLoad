@@ -99,3 +99,5 @@ typedef NTSTATUS(__fastcall LdrpProcessMappedModule)(_Inout_ DATA_TABLE_ENTRY* L
 typedef bool(__fastcall LdrpValidateEntrySection)(_In_ DATA_TABLE_ENTRY* LdrEntry);
 
 typedef NTSTATUS(__stdcall LdrpInitializeImportRedirection)();
+
+typedef DWORD(__fastcall LdrpHashAsciizString)(_In_ char* str);

@@ -335,3 +335,11 @@ typedef struct _RELOC_DATA
 	WORD Offset : 12;
 	WORD Type : 4;
 } RELOC_DATA;
+
+/* REAL STRUCT NAME UNKNOWN */
+typedef struct _IMPORT_INFO // LdrpCheckRedirection
+{
+	DWORD ImportHash; // LdrpHashAsciizString
+	DWORD BaseNameHashValue; // LDR_DATA_TABLE_ENTRY::BaseNameHashValue of the dll the import belongs to
+	char* ImportName; // ASCII name of the import
+} IMPORT_INFO;
