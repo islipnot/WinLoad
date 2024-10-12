@@ -220,7 +220,7 @@ int LdrpGenericProcessRelocation(RELOC_DATA* RelocEntry, BASE_RELOC* RelocBlock,
 			break;
 		}
 
-		case IMAGE_REL_BASED_RESERVED:
+		case IMAGE_REL_BASED_DIR64:
 		{
 			_addcarry_u32(LowBaseDif + *(DWORD*)RelocAddress, *((UINT*)RelocAddress + 1), HighBaseDif, (UINT*)RelocAddress + 1);
 			break;

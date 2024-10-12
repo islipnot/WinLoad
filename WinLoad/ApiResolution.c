@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "ntdll.h"
 
-HOST_ENTRY* __fastcall ApiSetpSearchForApiSetHost(NAMESPACE_ENTRY* NsEntry, PWSTR HostName, UINT16 HostNameSz, NAMESPACE_HEADER* ApiSetMap)
+HOST_ENTRY* ApiSetpSearchForApiSetHost(NAMESPACE_ENTRY* NsEntry, PWSTR HostName, UINT16 HostNameSz, NAMESPACE_HEADER* ApiSetMap)
 {
 	const DWORD HostEntryOffset = NsEntry->HostEntryOffset;
 	HOST_ENTRY* FirstHostEntry = (HOST_ENTRY*)((char*)(ApiSetMap) + HostEntryOffset);
@@ -35,14 +35,13 @@ HOST_ENTRY* __fastcall ApiSetpSearchForApiSetHost(NAMESPACE_ENTRY* NsEntry, PWST
 				UpperBound = EntryIndex + 1;
 				NextUpperBound = EntryIndex + 1;
 			}
-		} 
-		while (UpperBound <= LowerBound);
+		} while (UpperBound <= LowerBound);
 	}
 	
 	return FirstHostEntry;
 }
 
-NAMESPACE_ENTRY* __fastcall ApiSetpSearchForApiSet(NAMESPACE_HEADER* ApiSetMap, PWSTR ApiName, UINT16 ApiSubNameSz)
+NAMESPACE_ENTRY* ApiSetpSearchForApiSet(NAMESPACE_HEADER* ApiSetMap, PWSTR ApiName, UINT16 ApiSubNameSz)
 {
 	DWORD ApiHash = 0;
 
@@ -104,7 +103,7 @@ NAMESPACE_ENTRY* __fastcall ApiSetpSearchForApiSet(NAMESPACE_HEADER* ApiSetMap, 
 	return 0;
 }
 
-NTSTATUS __fastcall ApiSetResolveToHost(NAMESPACE_HEADER* ApiSetMap, UNICODE_STRING* ApiName, UNICODE_STRING* ParentName, bool* pResolved, UNICODE_STRING* HostName)
+NTSTATUS ApiSetResolveToHost(NAMESPACE_HEADER* ApiSetMap, UNICODE_STRING* ApiName, UNICODE_STRING* ParentName, bool* pResolved, UNICODE_STRING* HostName)
 {
 	bool resolved = false;
 
