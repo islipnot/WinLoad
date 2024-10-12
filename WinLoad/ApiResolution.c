@@ -164,4 +164,38 @@ NTSTATUS ApiSetResolveToHost(NAMESPACE_HEADER* ApiSetMap, UNICODE_STRING* ApiNam
 	return STATUS_SUCCESS;
 }
 
+NTSTATUS LdrpParseForwarderDescription(char* forwarder, STRING* DllName, char** pExportName, ULONG* ordinal)
+{
+	char* LastPeriod = strrchr(forwarder, '.');
+
+	if (LastPeriod)
+	{
+		const UINT DllNameSz = LastPeriod - forwarder;
+
+		if (DllNameSz <= 0xFFFF)
+		{
+			DllName->Buffer = forwarder;
+			DllName->MaximumLength = DllName->Length = (USHORT)DllNameSz;
+
+			char* ExportName;
+
+			if (LastPeriod[1] != '#')
+			{
+				ExportName = LastPeriod + 1;
+				
+			SetExportName:
+				*pExportName = ExportName;
+				return STATUS_SUCCESS;
+			}
+
+			ExportName = 0;
+
+			if (RtlCharToInteger(LastPeriod + 2, 0, ordinal) >= 0)
+				goto SetExportName;
+		}
+	}
+
+	return STATUS_INVALID_IMAGE_FORMAT;
+}
+
 int main() { return 0; }

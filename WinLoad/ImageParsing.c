@@ -275,9 +275,11 @@ NTSTATUS LdrRelocateImageWithBias(void* base)
 		ULONG DirSize;
 		BASE_RELOC* RelocBlock = (BASE_RELOC*)RtlImageDirectoryEntryToData(base, true, IMAGE_DIRECTORY_ENTRY_BASERELOC, &DirSize);
 
-		if (!RelocBlock || !DirSize) return (NtHeaders->FileHeader.Characteristics & IMAGE_FILE_RELOCS_STRIPPED) != 0 ? STATUS_CONFLICTING_ADDRESSES : STATUS_SUCCESS;
+		if (!RelocBlock || !DirSize) return (NtHeaders->FileHeader.Characteristics & IMAGE_FILE_RELOCS_STRIPPED) ? STATUS_SUCCESS : STATUS_CONFLICTING_ADDRESSES;
 
-		const UINT HighBaseDifference = (UINT)((UINT)base - (uint64_t)((uint64_t)PreferredBaseHigh << 32 | (uint64_t)PreferredBaseLow)) >> 32;
+		UINT HighBaseDifference;
+		_subborrow_u32((UINT)base - PreferredBaseLow, (UINT)base, PreferredBaseLow, &HighBaseDifference);
+
 		const UINT LowBaseDifference = (UINT)base - PreferredBaseLow;
 
 		while (true)
