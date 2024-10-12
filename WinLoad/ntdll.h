@@ -4,10 +4,10 @@
 
 typedef enum _LDR_LOAD_CONTEXT_FLAGS
 {
-	Unknown0             = 0x0000001,
+	DontUseCOR           = 0x0000001, // LdrpInitializeProcess
 	Unknown1             = 0x0000008,
 	Unknown6             = 0x0000100, // used in LdrpMapDllNtFileName, 
-	Unknown2             = 0x0000200,
+	Unknown2             = 0x0000200, // LdrpInitializeProcess
 	Unknown7             = 0x0008000, // LdrpAllocatePlaceHolder
 	Unknown3             = 0x0010000,
 	Unknown5             = 0x0080000,
@@ -108,7 +108,7 @@ typedef IMAGE_BASE_RELOCATION BASE_RELOCATION, BASE_RELOC;
 // Structs (comments are the functions where they're initialized)
 
 /* UNFINISHED - REAL STRUCT NAME UNKNOWN */
-typedef struct _LDR_DLL_PATH_DATA // LdrLoadDll
+typedef struct _LDRP_MODULE_PATH_DATA // LdrLoadDll
 {
 	PWSTR DllPath; // LdrpInitializeDllPath
 	char Unk1[4];
@@ -116,20 +116,20 @@ typedef struct _LDR_DLL_PATH_DATA // LdrLoadDll
 	ULONG Flags;   // LdrpInitializeDllPath
 	PWSTR DllName; // LdrpInitializeDllPath
 	char Unk2[58];
-} LDR_DLL_PATH_DATA, DLL_PATH_DATA;
+} LDRP_MODULE_PATH_DATA, MODULE_PATH_DATA;
 
 /* UNFINISHED */
-typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder
+typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), LdrpInitializeProcess (process context)
 {
-	UNICODE_STRING DllPath; // LdrpAllocatePlaceHolder
-	DLL_PATH_DATA* DllData; // LdrpAllocatePlaceHolder
+	UNICODE_STRING ModulePath; // LdrpAllocatePlaceHolder
+	MODULE_PATH_DATA* PathData; // LdrpAllocatePlaceHolder
 	HMODULE Handle;   // LdrpMapDllNtFileName
 	union
 	{
 		ULONG Flags;      // LdrpAllocatePlaceHolder
 		struct
 		{
-			ULONG Unk1  : 1;
+			ULONG DontUseCOR : 1;
 			ULONG Unk2  : 1;
 			ULONG Unk3  : 1;
 			ULONG Unk4  : 1;
@@ -184,15 +184,9 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder
 	ULONG UnknownDWORD;
 	int UnknownINT;
 	char Pad2[4];
-	BYTE* DllSectionBase;
-	WCHAR DllPathBase;
+	BYTE* ModuleSectionBase;
+	WCHAR ModulePathBase;
 } LDRP_LOAD_CONTEXT, LOAD_CONTEXT;
-
-/*
-- LOAD_CONTEXT::DllPathBase is the base of an allocated buffer for the DllPath, 
-  the size being equal to DllPath->Length (Allocated along with the load context 
-  via RtlAllocateHeap, total size being DllPath->Length + 0x6E).
-*/
 
 typedef struct _LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
 {

@@ -2,7 +2,7 @@
 #include "pch.h"
 #include "ntdll.h"
 
-typedef NTSTATUS(__fastcall LdrpAllocatePlaceHolder)(_Inout_ UNICODE_STRING* DllPath, _In_ DLL_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ DLL_LOAD_REASON LoadReason, _In_ DATA_TABLE_ENTRY* ParentEntry, _Out_ DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
+typedef NTSTATUS(__fastcall LdrpAllocatePlaceHolder)(_Inout_ UNICODE_STRING* DllPath, _In_ MODULE_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ DLL_LOAD_REASON LoadReason, _In_ DATA_TABLE_ENTRY* ParentEntry, _Out_ DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
 
 typedef LONG(__stdcall RtlCompareUnicodeStrings)(_In_ PWSTR Str1, _In_ UINT Sz1, _In_ PWSTR Str2, _In_ UINT Sz2, _In_ bool CaseInsensitive); // Not the same as RtlCompareUnicodeString
 
@@ -22,7 +22,7 @@ typedef NTSTATUS(__fastcall LdrpParseForwarderDescription)(_In_ char* Forwarder,
 
 typedef UINT(__stdcall LdrStandardizeSystemPath)(_Inout_ UNICODE_STRING* Path); // Exported
 
-typedef NTSTATUS(__fastcall LdrpComputeLazyDllPath)(_Inout_ DLL_PATH_DATA* DllData);
+typedef NTSTATUS(__fastcall LdrpComputeLazyDllPath)(_Inout_ MODULE_PATH_DATA* DllData);
 
 typedef NTSTATUS(__fastcall LdrpMapDllRetry)(_Inout_ LOAD_CONTEXT* LoadContext);
 
@@ -56,15 +56,15 @@ typedef PVOID(__fastcall LdrpQueueWork)(_Inout_ LOAD_CONTEXT* LoadContext);
 
 typedef NTSTATUS(__stdcall LdrpInitParallelLoadingSupport)();
 
-typedef NTSTATUS(__fastcall LdrpSnapModule)(_Inout_ LOAD_CONTEXT* LoadContext); // REVERSE THIS FULLY
+typedef NTSTATUS(__fastcall LdrpSnapModule)(_Inout_ LOAD_CONTEXT* LoadContext);
 
 typedef NTSTATUS(__stdcall LdrLoadDll)(_In_ ULONG dwFlags, _In_opt_ ULONG DllCharacteristics, _In_ UNICODE_STRING* DllName, _Inout_ HMODULE* pHandle); // Exported
 
-typedef void(__fastcall LdrpInitializeDllPath)(_In_ PWSTR DllName, _In_ ULONG dwFlags, _Inout_ DLL_PATH_DATA* DllData);
+typedef void(__fastcall LdrpInitializeDllPath)(_In_ PWSTR DllName, _In_ ULONG dwFlags, _Inout_ MODULE_PATH_DATA* DllData);
 
 typedef DATA_TABLE_ENTRY* (__fastcall LdrpAllocateModuleEntry)(_Inout_ LOAD_CONTEXT* LoadContext);
 
-typedef NTSTATUS(__fastcall LdrpFindOrPrepareLoadingModule)(_Inout_ UNICODE_STRING DllPath, _In_ DLL_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ DLL_LOAD_REASON LdrFlags, _In_ DATA_TABLE_ENTRY* ParentEntry, _Out_ DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
+typedef NTSTATUS(__fastcall LdrpFindOrPrepareLoadingModule)(_Inout_ UNICODE_STRING DllPath, _In_ MODULE_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ DLL_LOAD_REASON LdrFlags, _In_ DATA_TABLE_ENTRY* ParentEntry, _Out_ DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
 
 typedef NTSTATUS(__fastcall LdrpLoadKnownDll)(_Inout_ LOAD_CONTEXT* LoadContext);
 
@@ -97,3 +97,5 @@ typedef RELOC_DATA* (__fastcall LdrProcessRelocationBlockLongLong)(_In_ UINT16 m
 typedef NTSTATUS(__fastcall LdrpProcessMappedModule)(_Inout_ DATA_TABLE_ENTRY* LdrEntry, _In_ ULONG ContextFlags);
 
 typedef bool(__fastcall LdrpValidateEntrySection)(_In_ DATA_TABLE_ENTRY* LdrEntry);
+
+typedef NTSTATUS(__stdcall LdrpInitializeImportRedirection)();

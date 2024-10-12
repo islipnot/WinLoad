@@ -161,12 +161,7 @@ NTSTATUS RtlpImageDirectoryEntryToDataEx(void* base, bool MappedAsImage, UINT16 
 void* RtlImageDirectoryEntryToData(void* base, bool MappedAsImage, USHORT DirEntry, ULONG* DirSize)
 {
 	void* ResolvedAddress;
-
-	if (RtlpImageDirectoryEntryToDataEx(base, MappedAsImage, DirEntry, DirSize, &ResolvedAddress))
-	{
-		return 0;
-	}
-	else return ResolvedAddress;
+	return RtlpImageDirectoryEntryToDataEx(base, MappedAsImage, DirEntry, DirSize, &ResolvedAddress) < 0 ? 0 : ResolvedAddress;
 }
 
 bool LdrpValidateEntrySection(DATA_TABLE_ENTRY* LdrEntry)
