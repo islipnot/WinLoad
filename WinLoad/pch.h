@@ -7,4 +7,3 @@
 #include <winternl.h>
 #include <ntstatus.h>
 #include <stdbool.h>
-#include <stdint.h>

@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "ntdll.h"
 
+// https://www.intel.com/content/www/us/en/docs/cpp-compiler/developer-guide-reference/2021-8/addcarry-u32-addcarry-u64.html
 extern unsigned char _addcarry_u32(unsigned char c_in, unsigned int src1, unsigned int src2, unsigned int* sum_out);
 
+// https://www.intel.com/content/www/us/en/docs/cpp-compiler/developer-guide-reference/2021-8/subborrow-u32-subborrow-u64.html
 extern unsigned char _subborrow_u32(unsigned char b_in, unsigned int src1, unsigned int src2, unsigned int* diff_out);
 
 SECTION_HEADER* RtlSectionTableFromVirtualAddress(NT_HEADERS* NtHeaders, DWORD VirtAddr) // 1:1 sig in sigs.h
@@ -198,7 +200,7 @@ int LdrpGenericProcessRelocation(RELOC_DATA* RelocEntry, BASE_RELOC* RelocBlock,
 
 		case IMAGE_REL_BASED_LOW:
 		{
-			*(WORD*)RelocAddress += LowBaseDif;
+			*(WORD*)RelocAddress += (WORD)LowBaseDif;
 			break;
 		}
 
@@ -217,7 +219,7 @@ int LdrpGenericProcessRelocation(RELOC_DATA* RelocEntry, BASE_RELOC* RelocBlock,
 
 		case IMAGE_REL_BASED_DIR64:
 		{
-			_addcarry_u32(LowBaseDif + *(DWORD*)RelocAddress, *((UINT*)RelocAddress + 1), HighBaseDif, (UINT*)RelocAddress + 1);
+			_addcarry_u32((UCHAR)((LowBaseDif + *(DWORD*)RelocAddress) == 0), *((UINT*)RelocAddress + 1), HighBaseDif, (UINT*)RelocAddress + 1);
 			break;
 		}
 
@@ -246,7 +248,7 @@ BASE_RELOC* LdrProcessRelocationBlockLongLong(UINT16 machine, BASE_RELOC* RelocB
 		}
 	}
 
-	return RelocEntry;
+	return (BASE_RELOC*)RelocEntry;
 }
 
 NTSTATUS LdrRelocateImageWithBias(void* base)
@@ -278,14 +280,15 @@ NTSTATUS LdrRelocateImageWithBias(void* base)
 		if (!RelocBlock || !DirSize) return (NtHeaders->FileHeader.Characteristics & IMAGE_FILE_RELOCS_STRIPPED) ? STATUS_SUCCESS : STATUS_CONFLICTING_ADDRESSES;
 
 		UINT HighBaseDifference;
-		_subborrow_u32((UINT)base - PreferredBaseLow, (UINT)base, PreferredBaseLow, &HighBaseDifference);
+		_subborrow_u32((UCHAR)(((UINT)base - PreferredBaseLow) == 0), (UINT)base, PreferredBaseLow, &HighBaseDifference);
 
 		const UINT LowBaseDifference = (UINT)base - PreferredBaseLow;
 
 		while (true)
 		{
 			const DWORD SizeOfBlock = RelocBlock->SizeOfBlock;
-			RelocBlock = LdrProcessRelocationBlockLongLong(NtHeaders->FileHeader.Machine, (BASE_RELOC*)((char*)base + RelocBlock->VirtualAddress), (SizeOfBlock - sizeof(BASE_RELOC)) >> 1, RelocBlock + 1, LowBaseDifference, HighBaseDifference); 
+			RelocBlock = LdrProcessRelocationBlockLongLong(NtHeaders->FileHeader.Machine, (BASE_RELOC*)((char*)base + RelocBlock->VirtualAddress),
+				                                          (SizeOfBlock - sizeof(BASE_RELOC)) >> 1, (RELOC_DATA*)(RelocBlock + 1), LowBaseDifference, HighBaseDifference); 
 			if (!RelocBlock) break;
 
 			DirSize -= SizeOfBlock;

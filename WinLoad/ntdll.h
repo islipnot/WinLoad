@@ -2,7 +2,7 @@
 
 // Enums
 
-typedef enum _LDR_LOAD_CONTEXT_FLAGS
+typedef enum _LDRP_LOAD_CONTEXT_FLAGS
 {
 	DontUseCOR           = 0x0000001, // LdrpInitializeProcess
 	Unknown1             = 0x0000008,
@@ -16,7 +16,7 @@ typedef enum _LDR_LOAD_CONTEXT_FLAGS
 	UseActivationContext = 0x0800000,
 	ContextCorILOnly     = 0x1000000, // LdrpCompleteMapModule
 	RedirectModule       = 0x2000000  // LdrpMapAndSnapDependency
-} LDR_LOAD_CONTEXT_FLAGS, LOAD_CONTEXT_FLAGS;
+} LDRP_LOAD_CONTEXT_FLAGS, LOAD_CONTEXT_FLAGS;
 
 typedef enum _LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {
@@ -79,7 +79,7 @@ typedef enum _LDR_DDAG_STATE // https://www.geoffchappell.com/studies/windows/km
 	LdrModulesReadyToRun             =  9
 } LDR_DDAG_STATE;
 
-typedef enum _API_MASKS // Used in ApiSetResolveToHost to check the validity of an API set's name
+typedef enum _API_MASKS // Used in ApiSetResolveToHost to validate API set names
 {
 	API_HIGH      = 0x0002D0049,
 	EXT_HIGH      = 0x0002D0054,
@@ -130,14 +130,14 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 		struct
 		{
 			ULONG DontUseCOR : 1;
-			ULONG Unk2  : 1;
-			ULONG Unk3  : 1;
-			ULONG Unk4  : 1;
-			ULONG Unk5  : 1;
-			ULONG Unk6  : 1;
-			ULONG Unk7  : 1;
-			ULONG Unk8  : 1;
-			ULONG Unk9  : 1;
+			ULONG Unk2 : 1;
+			ULONG Unk3 : 1;
+			ULONG Unk4 : 1;
+			ULONG Unk5 : 1;
+			ULONG Unk6 : 1;
+			ULONG Unk7 : 1;
+			ULONG Unk8 : 1;
+			ULONG Unk9 : 1;
 			ULONG Unk10 : 1;
 			ULONG Unk11 : 1;
 			ULONG Unk12 : 1;
@@ -155,10 +155,10 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 			ULONG Unk24 : 1;
 			ULONG Unk25 : 1;
 			ULONG Unk26 : 1;
-			ULONG ContextCorImage      : 1;
+			ULONG ContextCorImage : 1;
 			ULONG UseActivationContext : 1;
-			ULONG ContextCorILOnly     : 1;
-			ULONG RedirectModule       : 1;
+			ULONG ContextCorILOnly : 1;
+			ULONG RedirectModule : 1;
 			ULONG Unk31 : 1;
 			ULONG Unk32 : 1;
 		};
@@ -257,7 +257,7 @@ typedef struct ___LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/
 			ULONG EntryProcessed : 1;
 			ULONG ProtectDelayLoad : 1;
 			ULONG ReservedFlags3 : 2;
-			ULONG DontCallForThreads : 1;
+			ULONG DontCallForThreads  : 1;
 			ULONG ProcessAttachCalled : 1;
 			ULONG ProcessAttachFailed : 1;
 			ULONG CorDeferredValidate : 1;
@@ -330,6 +330,7 @@ typedef struct _HASH_ENTRY // https://www.geoffchappell.com/studies/windows/win3
 	DWORD ApiIndex;
 } HASH_ENTRY;
 
+/* Unsure if Microsoft uses a struct like or just manual bit manipulation */
 typedef struct _RELOC_DATA
 {
 	WORD Offset : 12;
