@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "ntdll.h"
 
-HOST_ENTRY* ApiSetpSearchForApiSetHost(NAMESPACE_ENTRY* NsEntry, PWSTR HostName, UINT16 HostNameSz, NAMESPACE_HEADER* ApiSetMap)
+HOST_ENTRY* ApiSetpSearchForApiSetHost(const NAMESPACE_ENTRY* NsEntry, const PWSTR HostName, UINT16 HostNameSz, const NAMESPACE_HEADER* ApiSetMap)
 {
 	const DWORD HostEntryOffset = NsEntry->HostEntryOffset;
 	HOST_ENTRY* FirstHostEntry = (HOST_ENTRY*)((char*)(ApiSetMap) + HostEntryOffset);
@@ -41,7 +41,7 @@ HOST_ENTRY* ApiSetpSearchForApiSetHost(NAMESPACE_ENTRY* NsEntry, PWSTR HostName,
 	return FirstHostEntry;
 }
 
-NAMESPACE_ENTRY* ApiSetpSearchForApiSet(NAMESPACE_HEADER* ApiSetMap, PWSTR ApiName, UINT16 ApiSubNameSz)
+NAMESPACE_ENTRY* ApiSetpSearchForApiSet(const NAMESPACE_HEADER* ApiSetMap, PWSTR ApiName, UINT16 ApiSubNameSz)
 {
 	DWORD ApiHash = 0;
 
@@ -103,7 +103,7 @@ NAMESPACE_ENTRY* ApiSetpSearchForApiSet(NAMESPACE_HEADER* ApiSetMap, PWSTR ApiNa
 	return 0;
 }
 
-NTSTATUS ApiSetResolveToHost(NAMESPACE_HEADER* ApiSetMap, UNICODE_STRING* ApiName, UNICODE_STRING* ParentName, bool* pResolved, UNICODE_STRING* HostName)
+NTSTATUS ApiSetResolveToHost(const NAMESPACE_HEADER* ApiSetMap, const UNICODE_STRING* ApiName, const UNICODE_STRING* ParentName, bool* pResolved, UNICODE_STRING* HostName)
 {
 	bool resolved = false;
 
@@ -164,7 +164,124 @@ NTSTATUS ApiSetResolveToHost(NAMESPACE_HEADER* ApiSetMap, UNICODE_STRING* ApiNam
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS LdrpParseForwarderDescription(char* forwarder, STRING* DllName, char** pExportName, ULONG* ordinal)
+NTSTATUS ApiSetQuerySchemaInfo(const NAMESPACE_HEADER* ApiSetMap, const UNICODE_STRING* Namespace, BOOLEAN* pIsInSchema, BOOLEAN* pPresent)
+{
+	const UINT NsLength = (UINT)Namespace->Length;
+	const PWSTR NsBuffer = Namespace->Buffer;
+	bool IsApiSet = false;
+
+	if (NsLength >= 8) // wcslen(L"api-") * sizeof(WCHAR) == wcslen(L"ext-") * sizeof(WCHAR) == 8
+	{
+		const DWORD NsMaskHigh = *(DWORD*)NsBuffer & API_MASK_LOW;
+		const DWORD NsMaskLow  = *((DWORD*)NsBuffer + 1) & API_MASK_HIGH;
+		IsApiSet = NsMaskHigh == API_LOW && NsMaskLow == API_HIGH || NsMaskHigh == EXT_LOW && NsMaskLow == EXT_HIGH;
+	}
+
+	if (!IsApiSet)
+	{
+		if (!_wcsnicmp(L"SchemaExt-", NsBuffer, 20))
+		{
+			*pPresent = *pIsInSchema = ApiSetpSearchForApiSet(ApiSetMap, NsBuffer, (UINT16)NsLength >> 1) != 0;
+			return STATUS_SUCCESS;
+		}
+
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	UINT ApiSubNameSz = NsLength;
+
+	if (NsLength > 1)
+	{
+		PWCHAR NameEnd = (PWCHAR)((char*)NsBuffer + NsLength);
+
+		do
+		{
+			--NameEnd;
+			ApiSubNameSz -= 2;
+		} 
+		while (*NameEnd != '-' && ApiSubNameSz > 1);
+	}
+
+	const UINT SubCharCount = (UINT16)ApiSubNameSz >> 1;
+	if (!(UINT16)SubCharCount) return STATUS_INVALID_PARAMETER;
+
+	const UINT DetailLen = (NsLength - (UINT16)ApiSubNameSz) >> 1;
+	if (DetailLen < 2) return STATUS_INVALID_PARAMETER;
+
+	const PWSTR ApiDetailsDash = (PWSTR)((char*)NsBuffer + (UINT16)ApiSubNameSz);
+	if (*ApiDetailsDash != '-') return STATUS_INVALID_PARAMETER;
+
+	DWORD DetailHash = 0;
+
+	if ((int)(DetailLen - 1) > 0)
+	{
+		PWCHAR ApiDetails = ApiDetailsDash + 1;
+		int DetailIndex = DetailLen - 1;
+
+		do
+		{
+			const int detail = *ApiDetails;
+
+			if ((UINT16)(detail - 48) > 9)
+			{
+				return STATUS_INVALID_PARAMETER;
+			}
+
+			++ApiDetails;
+			--DetailIndex;
+			DetailHash = detail + (10 * DetailHash) - 48;
+		} 
+		while (DetailIndex > 0);
+	}
+
+	const NAMESPACE_ENTRY* NsEntry = ApiSetpSearchForApiSet(ApiSetMap, NsBuffer, SubCharCount);
+
+	bool InSchema = false;
+	bool present = false;
+
+	if (NsEntry)
+	{
+		const UINT NseDetailSzDash = (NsEntry->ApiNameSz - NsEntry->ApiSubNameSz) >> 1;
+
+		if (NseDetailSzDash)
+		{
+			const PWSTR NseDetailsDash = (PWSTR)((char*)ApiSetMap + NsEntry->ApiSubNameSz + NsEntry->ApiNameOffset);
+
+			if (*NseDetailsDash == '-' && NseDetailSzDash != 1)
+			{
+				UINT NseDetailSz = NseDetailSzDash - 1;
+				PWSTR NseDetails = NseDetailsDash + 1;
+				UINT NseHash = 0;
+
+				if ((int)(NseDetailSzDash - 1) < 1)
+				{
+				check_if_in_schema:
+
+					if (DetailHash <= NseHash)
+					{
+						InSchema = true;
+						if (NsEntry->HostCount) present = *(DWORD*)((char*)&ApiSetMap->NsEntryOffset + NsEntry->HostEntryOffset) != 0; // Checking if the host's API_SET_VALUE_ENTRY::ValueLength is non-zero
+					}
+				}
+				else
+				{
+					while ((UINT16)(*NseDetails - 48) <= 9)
+					{
+						NseDetails = *NseDetails++;
+						NseHash = NseDetails + (10 * NseHash) - 48;
+						if ((int)--NseDetailSz < 1) goto check_if_in_schema;
+					}
+				}
+			}
+		}
+	}
+
+	*pIsInSchema = InSchema;
+	*pPresent = present;
+	return STATUS_SUCCESS;
+}
+
+NTSTATUS LdrpParseForwarderDescription(const char* forwarder, STRING* DllName, char** pExportName, const ULONG* ordinal)
 {
 	char* LastPeriod = strrchr(forwarder, '.');
 

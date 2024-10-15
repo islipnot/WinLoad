@@ -79,15 +79,15 @@ typedef enum _LDR_DDAG_STATE // https://www.geoffchappell.com/studies/windows/km
 	LdrModulesReadyToRun             =  9
 } LDR_DDAG_STATE;
 
-typedef enum _API_MASKS // Used in ApiSetResolveToHost to validate API set names
+enum API_MASKS // ApiSetQuerySchemaInfo/ApiSetResolveToHost
 {
-	API_HIGH      = 0x0002D0049,
-	EXT_HIGH      = 0x0002D0054,
-	API_LOW       = 0x000500041,
-	EXT_LOW       = 0x000580045,
+	API_HIGH      = 0x0002D0049, // "AP"
+	EXT_HIGH      = 0x0002D0054, // "T" (following char isn't checked)
+	API_LOW       = 0x000500041, // "I" (following char isn't checked)
+	EXT_LOW       = 0x000580045, // "EX"
 	API_MASK_LOW  = 0x0FFDFFFDF,
 	API_MASK_HIGH = 0x0FFFFFFDF
-} API_MASKS;
+};
 
 // Typedefs
 
@@ -124,7 +124,7 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	UNICODE_STRING ModulePath; // LdrpAllocatePlaceHolder
 	MODULE_PATH_DATA* PathData; // LdrpAllocatePlaceHolder
 	HMODULE Handle;   // LdrpMapDllNtFileName
-	union
+	union // Flags are accessed both as a ULONG and a bitfield, depending on the function.
 	{
 		ULONG Flags;      // LdrpAllocatePlaceHolder
 		struct
@@ -163,7 +163,7 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 			ULONG Unk32 : 1;
 		};
 	};
-	char Pad1[4];
+	char Pad1[4]; /* TODO: REVERSE THIS */
 	NTSTATUS* pState; // LdrpAllocatePlaceHolder
 	LDR_DATA_TABLE_ENTRY* ParentLdrEntry; // LdrpAllocatePlaceHolder
 	LDR_DATA_TABLE_ENTRY* LdrEntry;       // LdrpAllocateModuleEntry
@@ -181,8 +181,8 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	ULONG OldIATProtect;
 	DWORD* GuardCFCheckFunctionPointer;
 	DWORD GuardCFCheckFunctionPointerVA;
-	ULONG UnknownDWORD;
-	int UnknownINT;
+	ULONG UnknownDWORD; /* TODO: REVERSE THIS */
+	int UnknownINT; /* TODO: REVERSE THIS */
 	char Pad2[4];
 	BYTE* ModuleSectionBase;
 	WCHAR ModulePathBase;

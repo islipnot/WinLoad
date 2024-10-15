@@ -7,7 +7,7 @@ extern unsigned char _addcarry_u32(unsigned char c_in, unsigned int src1, unsign
 // https://www.intel.com/content/www/us/en/docs/cpp-compiler/developer-guide-reference/2021-8/subborrow-u32-subborrow-u64.html
 extern unsigned char _subborrow_u32(unsigned char b_in, unsigned int src1, unsigned int src2, unsigned int* diff_out);
 
-SECTION_HEADER* RtlSectionTableFromVirtualAddress(NT_HEADERS* NtHeaders, DWORD VirtAddr) // 1:1 sig in sigs.h
+SECTION_HEADER* RtlSectionTableFromVirtualAddress(const NT_HEADERS* NtHeaders, DWORD VirtAddr) // 1:1 sig in sigs.h
 {
 	const UINT NumberOfSections = (UINT)NtHeaders->FileHeader.NumberOfSections;
 	if (!NumberOfSections) return 0;
@@ -25,14 +25,14 @@ SECTION_HEADER* RtlSectionTableFromVirtualAddress(NT_HEADERS* NtHeaders, DWORD V
 	return section;
 }
 
-void* RtlAddressInSectionTable(NT_HEADERS* NtHeaders, BYTE* base, DWORD VirtAddr)
+void* RtlAddressInSectionTable(const NT_HEADERS* NtHeaders, const BYTE* base, DWORD VirtAddr)
 {
 	SECTION_HEADER* section = RtlSectionTableFromVirtualAddress(NtHeaders, VirtAddr);
 	if (section) return &base[section->PointerToRawData - section->VirtualAddress + VirtAddr];
 	else return 0;
 }
 
-NTSTATUS RtlpImageDirectoryEntryToData64(BYTE* base, bool MappedAsImage, UINT16 DirEntry, ULONG* DirSize, NT_HEADERS* NtHeaders, void** ResolvedAddress)
+NTSTATUS RtlpImageDirectoryEntryToData64(const BYTE* base, bool MappedAsImage, UINT16 DirEntry, ULONG* DirSize, const NT_HEADERS* NtHeaders, void** ResolvedAddress)
 {
 	if (DirEntry < NtHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size)
 	{
@@ -56,7 +56,7 @@ NTSTATUS RtlpImageDirectoryEntryToData64(BYTE* base, bool MappedAsImage, UINT16 
 	return STATUS_INVALID_PARAMETER;
 }
 
-NTSTATUS RtlImageNtHeaderEx(ULONG flags, DWORD* base, ULONG size, NT_HEADERS** pNtHeader) // 1:1 sig in sigs.h
+NTSTATUS RtlImageNtHeaderEx(ULONG flags, const DWORD* base, ULONG size, NT_HEADERS** pNtHeader) // 1:1 sig in sigs.h
 {
 	if (!pNtHeader) return STATUS_INVALID_PARAMETER;
 
@@ -114,7 +114,7 @@ NTSTATUS RtlImageNtHeaderEx(ULONG flags, DWORD* base, ULONG size, NT_HEADERS** p
 	return result;
 }
 
-NTSTATUS RtlpImageDirectoryEntryToDataEx(void* base, bool MappedAsImage, UINT16 DirEntry, ULONG* DirSize, void** ResolvedAddress)
+NTSTATUS RtlpImageDirectoryEntryToDataEx(const void* base, bool MappedAsImage, UINT16 DirEntry, ULONG* DirSize, void** ResolvedAddress)
 {
 	if (((UINT8)base & 3) != 0) // Checking alignment
 	{
@@ -160,31 +160,31 @@ NTSTATUS RtlpImageDirectoryEntryToDataEx(void* base, bool MappedAsImage, UINT16 
 	return STATUS_SUCCESS;
 }
 
-void* RtlImageDirectoryEntryToData(void* base, bool MappedAsImage, USHORT DirEntry, ULONG* DirSize)
+void* RtlImageDirectoryEntryToData(const void* base, bool MappedAsImage, USHORT DirEntry, ULONG* DirSize)
 {
 	void* ResolvedAddress;
 	return RtlpImageDirectoryEntryToDataEx(base, MappedAsImage, DirEntry, DirSize, &ResolvedAddress) < 0 ? 0 : ResolvedAddress;
 }
 
-bool LdrpValidateEntrySection(DATA_TABLE_ENTRY* LdrEntry)
+bool LdrpValidateEntrySection(const DATA_TABLE_ENTRY* LdrEntry)
 {
 	NT_HEADERS* NtHeaders;
-	RtlImageNtHeaderEx(3u, (DWORD*)LdrEntry->DllBase, 0, &NtHeaders);
+	RtlImageNtHeaderEx(3, (DWORD*)LdrEntry->DllBase, 0, &NtHeaders);
 
 	const UINT AddressOfEP = NtHeaders->OptionalHeader.AddressOfEntryPoint;
 	return !AddressOfEP || !LdrEntry->EntryPoint || AddressOfEP >= NtHeaders->OptionalHeader.SizeOfHeaders;
 }
 
-NTSTATUS LdrpCorValidateImage(void* base)
+NTSTATUS LdrpCorValidateImage(const void* base)
 {
 	ULONG DirSize;
-	return RtlImageDirectoryEntryToData(base, true, IMAGE_DIRECTORY_ENTRY_TLS, &DirSize) != 0 ? STATUS_INVALID_IMAGE_FORMAT : STATUS_SUCCESS;
+	return RtlImageDirectoryEntryToData(base, true, IMAGE_DIRECTORY_ENTRY_TLS, &DirSize) ? STATUS_SUCCESS : STATUS_INVALID_IMAGE_FORMAT;
 }
 
-int LdrpGenericProcessRelocation(RELOC_DATA* RelocEntry, BASE_RELOC* RelocBlock, DWORD LowBaseDif, DWORD HighBaseDif)
+int LdrpGenericProcessRelocation(const RELOC_DATA* RelocEntry, const BASE_RELOC* RelocBlock, DWORD LowBaseDif, DWORD HighBaseDif)
 {
 	const WORD RelocType = RelocEntry->Type;
-	int ProcessesedEntries = 1;
+	int ProcessedEntries = 1;
 
 	if (RelocType != IMAGE_REL_BASED_ABSOLUTE)
 	{
@@ -212,7 +212,7 @@ int LdrpGenericProcessRelocation(RELOC_DATA* RelocEntry, BASE_RELOC* RelocBlock,
 
 		case IMAGE_REL_BASED_HIGHADJ:
 		{
-			ProcessesedEntries = 2;
+			ProcessedEntries = 2;
 			*(WORD*)RelocAddress = (LowBaseDif + (*(WORD*)RelocAddress << 16) + *(WORD*)&RelocEntry[1] + 0x8000) >> 16;
 			break;
 		}
@@ -223,14 +223,14 @@ int LdrpGenericProcessRelocation(RELOC_DATA* RelocEntry, BASE_RELOC* RelocBlock,
 			break;
 		}
 
-		default: return 0;
+		default: ProcessedEntries = 0;
 		}
 	}
 
-	return ProcessesedEntries;
+	return ProcessedEntries;
 }
 
-BASE_RELOC* LdrProcessRelocationBlockLongLong(UINT16 machine, BASE_RELOC* RelocBlock, DWORD EntryCount, RELOC_DATA* RelocEntry, DWORD LowBaseDif, DWORD HighBaseDif)
+BASE_RELOC* LdrProcessRelocationBlockLongLong(UINT16 machine, const BASE_RELOC* RelocBlock, DWORD EntryCount, const RELOC_DATA* RelocEntry, DWORD LowBaseDif, DWORD HighBaseDif)
 {
 	RELOC_DATA* EndOfBlock = &RelocEntry[EntryCount];
 
@@ -251,7 +251,7 @@ BASE_RELOC* LdrProcessRelocationBlockLongLong(UINT16 machine, BASE_RELOC* RelocB
 	return (BASE_RELOC*)RelocEntry;
 }
 
-NTSTATUS LdrRelocateImageWithBias(void* base)
+NTSTATUS LdrRelocateImageWithBias(const void* base)
 {
 	NT_HEADERS* NtHeaders;
 

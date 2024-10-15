@@ -2,6 +2,13 @@
 #include "pch.h"
 #include "ntdll.h"
 
+/*
+* > TODO
+* 
+* - Reverse/recreate module directory resolution
+* - Further reverse the handling of API sets and use of ApiSetMap
+*/
+
 typedef NTSTATUS(__fastcall LdrpAllocatePlaceHolder)(_Inout_ UNICODE_STRING* DllPath, _In_ MODULE_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ DLL_LOAD_REASON LoadReason, _In_ DATA_TABLE_ENTRY* ParentEntry, _Out_ DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
 
 typedef LONG(__stdcall RtlCompareUnicodeStrings)(_In_ PWSTR Str1, _In_ UINT Sz1, _In_ PWSTR Str2, _In_ UINT Sz2, _In_ bool CaseInsensitive); // Not the same as RtlCompareUnicodeString
@@ -101,3 +108,5 @@ typedef bool(__fastcall LdrpValidateEntrySection)(_In_ DATA_TABLE_ENTRY* LdrEntr
 typedef NTSTATUS(__stdcall LdrpInitializeImportRedirection)();
 
 typedef DWORD(__fastcall LdrpHashAsciizString)(_In_ char* str);
+
+typedef NTSTATUS(__fastcall ApiSetQuerySchemaInfo)(_In_ NAMESPACE_HEADER* ApiSetMap, _In_ const UNICODE_STRING* Namespace, _Out_ BOOLEAN* IsInSchema, _Out_ BOOLEAN* Present);
