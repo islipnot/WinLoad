@@ -281,6 +281,25 @@ NTSTATUS ApiSetQuerySchemaInfo(const NAMESPACE_HEADER* ApiSetMap, const UNICODE_
 	return STATUS_SUCCESS;
 }
 
+NTSTATUS ApiSetQueryApiSetPresenceEx(const UNICODE_STRING* Namespace, BOOLEAN* IsInSchema, BOOLEAN* Present)
+{
+	return ApiSetQuerySchemaInfo(NtCurrentPeb()->ApiSetMap, Namespace, IsInSchema, Present);
+}
+
+NTSTATUS ApiSetQueryApiSetPresence(const UNICODE_STRING* ApiName, bool* pStatus)
+{
+	UNICODE_STRING HostName;
+	const NTSTATUS ResolveStatus = ApiSetResolveToHost(NtCurrentPeb()->ApiSetMap, ApiName, 0, pStatus, &HostName);
+
+	if (ResolveStatus < 0)
+		return ResolveStatus;
+
+	if (!HostName.Length && *pStatus)
+		*pStatus = 0;
+
+	return STATUS_SUCCESS;
+}
+
 NTSTATUS LdrpParseForwarderDescription(const char* forwarder, STRING* DllName, char** pExportName, const ULONG* ordinal)
 {
 	char* LastPeriod = strrchr(forwarder, '.');

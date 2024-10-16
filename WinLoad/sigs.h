@@ -2,13 +2,6 @@
 #include "pch.h"
 #include "ntdll.h"
 
-/*
-* > TODO
-* 
-* - Reverse/recreate module directory resolution
-* - Further reverse the handling of API sets and use of ApiSetMap
-*/
-
 typedef NTSTATUS(__fastcall LdrpAllocatePlaceHolder)(_Inout_ UNICODE_STRING* DllPath, _In_ MODULE_PATH_DATA* PathData, _In_ ULONG LoadFlags, _In_ DLL_LOAD_REASON LoadReason, _In_ DATA_TABLE_ENTRY* ParentEntry, _Out_ DATA_TABLE_ENTRY** NewEntry, _In_ NTSTATUS* pState);
 
 typedef LONG(__stdcall RtlCompareUnicodeStrings)(_In_ PWSTR Str1, _In_ UINT Sz1, _In_ PWSTR Str2, _In_ UINT Sz2, _In_ bool CaseInsensitive); // Not the same as RtlCompareUnicodeString
@@ -81,7 +74,7 @@ typedef void* (__stdcall RtlImageDirectoryEntryToData)(_In_ void* Base, _In_ boo
 
 typedef NTSTATUS(__fastcall RtlpImageDirectoryEntryToDataEx)(_In_ void* Base, _In_ bool MappedAsImage, _In_ UINT16 DirEntry, _Out_ ULONG* DirSize, _Out_ void** ResolvedAddress);
 
-typedef NTSTATUS(__stdcall RtlImageNtHeaderEx)(_In_ ULONG Flags, _In_ DWORD* Base, _In_ ULONG Size, _In_opt_ int ReservedAlwaysZero, _Out_ NT_HEADERS** NtHeaders); // Exported
+typedef NTSTATUS(__stdcall RtlImageNtHeaderEx)(_In_ ULONG Flags, _In_ DWORD* Base, _In_ ULONG FileHdrOffset, _In_opt_ int ReservedAlwaysZero, _Out_ NT_HEADERS** NtHeaders); // Exported
 
 typedef NTSTATUS(__fastcall RtlpImageDirectoryEntryToData64)(_In_ BYTE* Base, _In_ bool MappedAsImage, _In_ UINT16 DirectoryEntry, _Out_ ULONG* DirectorySize, _In_ NT_HEADERS* NtHeaders, _Out_ void** ResolvedAddress);
 
@@ -110,3 +103,11 @@ typedef NTSTATUS(__stdcall LdrpInitializeImportRedirection)();
 typedef DWORD(__fastcall LdrpHashAsciizString)(_In_ char* str);
 
 typedef NTSTATUS(__fastcall ApiSetQuerySchemaInfo)(_In_ NAMESPACE_HEADER* ApiSetMap, _In_ const UNICODE_STRING* Namespace, _Out_ BOOLEAN* IsInSchema, _Out_ BOOLEAN* Present);
+
+typedef NTSTATUS(__stdcall ApiSetQueryApiSetPresenceEx)(_In_ const UNICODE_STRING* Namespace, _Out_ BOOLEAN* IsInSchema, _Out_ BOOLEAN* Present); // Exported
+
+typedef NTSTATUS(__stdcall ApiSetQueryApiSetPresence)(_In_ const UNICODE_STRING* ApiName, _Out_ bool* status); // Exported
+
+typedef void(__fastcall LdrpInsertDataTableEntry)(_Inout_ DATA_TABLE_ENTRY* LdrEntry);
+
+typedef NT_HEADERS* (__stdcall RtlImageNtHeader)(_In_ const void* DllBase);

@@ -2,12 +2,20 @@
 
 // Enums
 
+typedef enum _RTL_NT_HDR_FLAGS // RtlImageNtHeader/RtlImageNtHeaderEx
+{
+	IGNORE_FILE_HDR_OFFSET = 1,
+	NT_HDR_FLAG_RESERVED   = 2,
+	INVALID_FLAG_BITS      = 0xFFFFFFFC,
+} RTL_NT_HDR_FLAGS, NT_HDR_FLAGS;
+
 typedef enum _LDRP_LOAD_CONTEXT_FLAGS
 {
 	DontUseCOR           = 0x0000001, // LdrpInitializeProcess
-	Unknown1             = 0x0000008,
-	Unknown6             = 0x0000100, // used in LdrpMapDllNtFileName, 
-	Unknown2             = 0x0000200, // LdrpInitializeProcess
+	Unknown1             = 0x0000008, // Used in LdrpLoadKnownDll/LdrpFindLoadedDllByNameLockHeld
+	Unknown0             = 0x0000020, // Used in LdrpLoadKnownDll/LdrpMapDllWithSectionHandle
+	Unknown6             = 0x0000100, // Used in LdrpMapDllNtFileName, 
+	Unknown2             = 0x0000200, // LdrpInitializeProcess/LdrpLoadKnownDll
 	Unknown7             = 0x0008000, // LdrpAllocatePlaceHolder
 	Unknown3             = 0x0010000,
 	Unknown5             = 0x0080000,
@@ -108,6 +116,15 @@ typedef IMAGE_BASE_RELOCATION BASE_RELOCATION, BASE_RELOC;
 // Structs (comments are the functions where they're initialized)
 
 /* UNFINISHED - REAL STRUCT NAME UNKNOWN */
+typedef struct _LDRP_INVERTED_FUNCTION_TABLE_HEADER // RtlpInsertInvertedFunctionTableEntry
+{
+	DWORD* u1;
+	DWORD* DllBase;
+	DWORD* SizeOfImage;
+	DWORD* SEHandlerCount;
+} LDRP_INVERTED_FUNCTION_TABLE_HEADER, INVERTED_FUNCTION_TABLE_HEADER;
+
+/* UNFINISHED - REAL STRUCT NAME UNKNOWN */
 typedef struct _LDRP_MODULE_PATH_DATA // LdrLoadDll
 {
 	PWSTR DllPath; // LdrpInitializeDllPath
@@ -127,6 +144,7 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	union // Flags are accessed both as a ULONG and a bitfield, depending on the function.
 	{
 		ULONG Flags;      // LdrpAllocatePlaceHolder
+		BYTE FlagGroup[4];
 		struct
 		{
 			ULONG DontUseCOR : 1;
@@ -181,7 +199,7 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	ULONG OldIATProtect;
 	DWORD* GuardCFCheckFunctionPointer;
 	DWORD GuardCFCheckFunctionPointerVA;
-	ULONG UnknownDWORD; /* TODO: REVERSE THIS */
+	DWORD FileHeaderOffset; // Used in LdrpMapDllWithSectionHandle
 	int UnknownINT; /* TODO: REVERSE THIS */
 	char Pad2[4];
 	BYTE* ModuleSectionBase;
@@ -221,10 +239,10 @@ typedef struct _RTL_BALANCED_NODE // https://www.geoffchappell.com/studies/windo
 	};
 } RTL_BALANCED_NODE;
 
-typedef struct ___LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
+typedef struct _FULL_LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {
-	LIST_ENTRY InLoadOrderLinks;
-	LIST_ENTRY InMemoryOrderLinks;
+	LIST_ENTRY InLoadOrderLinks; // LdrpInsertDataTableEntry
+	LIST_ENTRY InMemoryOrderLinks; // LdrpInsertDataTableEntry
 	union
 	{
 		LIST_ENTRY InInitializationOrderLinks;
@@ -273,7 +291,7 @@ typedef struct ___LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/
 	};
 	USHORT ObsoleteLoadCount;
 	USHORT TlsIndex;
-	LIST_ENTRY HashLinks;
+	LIST_ENTRY HashLinks; // LdrpInsertDataTableEntry
 	ULONG TimeDateStamp;
 	PVOID EntryPointActivationContext;
 	PVOID Lock;
@@ -286,13 +304,13 @@ typedef struct ___LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/
 	RTL_BALANCED_NODE MappingInfoIndexNode;
 	ULONG_PTR OriginalBase; // LdrpProcessMappedModule
 	LARGE_INTEGER LoadTime;
-	ULONG BaseNameHashValue; // Calculated via LdrpHashUnicodeString
+	ULONG BaseNameHashValue; // LdrpInsertDataTableEntry (calulated via LdrpHashUnicodeString)
 	DLL_LOAD_REASON LoadReason;
 	ULONG ImplicitPathOptions;
 	ULONG ReferenceCount;
 	ULONG DependentLoadFlags;
 	UCHAR SigningLevel;
-} __LDR_DATA_TABLE_ENTRY, DATA_TABLE_ENTRY;
+} FULL_LDR_DATA_TABLE_ENTRY, DATA_TABLE_ENTRY;
 
 typedef struct _API_SET_VALUE_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
@@ -330,6 +348,158 @@ typedef struct _HASH_ENTRY // https://www.geoffchappell.com/studies/windows/win3
 	DWORD ApiIndex;
 } HASH_ENTRY;
 
+typedef struct _FULL_PEB_LDR_DATA // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntpsapi_x/peb_ldr_data.htm
+{
+	ULONG Length;
+	BOOLEAN Initialized;
+	PVOID SsHandle;
+	LIST_ENTRY InLoadOrderModuleList;
+	LIST_ENTRY InMemoryOrderModuleList;
+	LIST_ENTRY InInitializationOrderModuleList;
+	PVOID EntryInProgress;
+	BOOLEAN ShutdownInProgress;
+	HANDLE ShutdownThreadId;
+} FULL_PEB_LDR_DATA;
+
+typedef struct _FULL_PEB // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/pebteb/peb/index.htm
+{
+	BOOLEAN InheritedAddressSpace;
+	BOOLEAN ReadImageFileExecOptions;
+	BOOLEAN BeingDebugged;
+	union 
+	{
+		UCHAR BitField;
+		struct 
+		{
+			UCHAR ImageUsedLargePages : 1;
+			UCHAR IsProtectedProcess : 1;
+			UCHAR IsImageDynamicallyRelocated : 1;
+			UCHAR SkipPatchingUser32Forwarders : 1;
+			UCHAR IsPackagedProcess : 1;
+			UCHAR IsAppContainer : 1;
+			UCHAR IsProtectedProcessLight : 1;
+			UCHAR IsLongPathAwareProcess : 1;
+		};
+	};
+	HANDLE Mutant;
+	PVOID ImageBaseAddress;
+	FULL_PEB_LDR_DATA* Ldr;
+	RTL_USER_PROCESS_PARAMETERS* ProcessParameters;
+	PVOID SubSystemData;
+	PVOID ProcessHeap;
+	RTL_CRITICAL_SECTION* FastPebLock;
+	PVOID AtlThunkSListPtr;
+	PVOID IFEOKey;
+	union 
+	{
+		ULONG CrossProcessFlags;
+		struct 
+		{
+			ULONG ProcessInJob : 1;
+			ULONG ProcessInitializing : 1;
+			ULONG ProcessUsingVEH : 1;
+			ULONG ProcessUsingVCH : 1;
+			ULONG ProcessUsingFTH : 1;
+			ULONG ProcessPreviouslyThrottled : 1;
+			ULONG ProcessCurrentlyThrottled : 1;
+			ULONG ProcessImagesHotPatched : 1;
+			ULONG ReservedBits0 : 24;
+		};
+	};
+	union 
+	{
+		PVOID KernelCallbackTable;
+		PVOID UserSharedInfoPtr;
+	};
+	ULONG SystemReserved;
+	ULONG AtlThunkSListPtr32;
+	NAMESPACE_HEADER* ApiSetMap;
+	ULONG TlsExpansionCounter;
+	PVOID TlsBitmap;
+	ULONG TlsBitmapBits[2];
+	PVOID ReadOnlySharedMemoryBase;
+	PVOID SharedData;
+	PVOID* ReadOnlyStaticServerData;
+	PVOID AnsiCodePageData;
+	PVOID OemCodePageData;
+	PVOID UnicodeCaseTableData;
+	ULONG NumberOfProcessors;
+	ULONG NtGlobalFlag;
+	LARGE_INTEGER CriticalSectionTimeout;
+	ULONG_PTR HeapSegmentReserve;
+	ULONG_PTR HeapSegmentCommit;
+	ULONG_PTR HeapDeCommitTotalFreeThreshold;
+	ULONG_PTR HeapDeCommitFreeBlockThreshold;
+	ULONG NumberOfHeaps;
+	ULONG MaximumNumberOfHeaps;
+	PVOID* ProcessHeaps;
+	PVOID GdiSharedHandleTable;
+	PVOID ProcessStarterHelper;
+	ULONG GdiDCAttributeList;
+	RTL_CRITICAL_SECTION* LoaderLock;
+	ULONG OSMajorVersion;
+	ULONG OSMinorVersion;
+	USHORT OSBuildNumber;
+	USHORT OSCSDVersion;
+	ULONG OSPlatformId;
+	ULONG ImageSubsystem;
+	ULONG ImageSubsystemMajorVersion;
+	ULONG ImageSubsystemMinorVersion;
+	KAFFINITY ActiveProcessAffinityMask;
+	ULONG GdiHandleBuffer[0x22];
+	VOID(*PostProcessInitRoutine) (VOID);
+	PVOID TlsExpansionBitmap;
+	ULONG TlsExpansionBitmapBits[0x20];
+	ULONG SessionId;
+	ULARGE_INTEGER AppCompatFlags;
+	ULARGE_INTEGER AppCompatFlagsUser;
+	PVOID pShimData;
+	PVOID AppCompatInfo;
+	UNICODE_STRING CSDVersion;
+	struct ACTIVATION_CONTEXT_DATA const* ActivationContextData;
+	struct ASSEMBLY_STORAGE_MAP* ProcessAssemblyStorageMap;
+	struct ACTIVATION_CONTEXT_DATA const* SystemDefaultActivationContextData;
+	struct ASSEMBLY_STORAGE_MAP* SystemAssemblyStorageMap;
+	ULONG_PTR MinimumStackCommit;
+	PVOID SparePointers[4];
+	ULONG SpareUlongs[5];
+	PVOID WerRegistrationData;
+	PVOID WerShipAssertPtr;
+	PVOID pUnused;
+	PVOID pImageHeaderHash;
+	union 
+	{
+		ULONG TracingFlags;
+		struct 
+		{
+			ULONG HeapTracingEnabled : 1;
+			ULONG CritSecTracingEnabled : 1;
+			ULONG LibLoaderTracingEnabled : 1;
+			ULONG SpareTracingBits : 29;
+		};
+	};
+	ULONGLONG CsrServerReadOnlySharedMemoryBase;
+	ULONG TppWorkerpListLock;
+	LIST_ENTRY TppWorkerpList;
+	PVOID WaitOnAddressHashTable[0x80];
+	PVOID TelemetryCoverageHeader;
+	ULONG CloudFileFlags;
+	ULONG CloudFileDiagFlags;
+	CHAR PlaceholderCompatibiltyMode;
+	CHAR PlaceholderCompatibilityModeReserved[7];
+	struct LEAP_SECOND_DATA* LeapSecondData;
+	union 
+	{
+		ULONG LeapSecondFlags;
+		struct 
+		{
+			ULONG SixtySecondEnabled : 1;
+			ULONG Reserved : 31;
+		};
+	};
+	ULONG NtGlobalFlag2;
+} FULL_PEB;
+
 /* Unsure if Microsoft uses a struct like or just manual bit manipulation */
 typedef struct _RELOC_DATA
 {
@@ -344,3 +514,29 @@ typedef struct _IMPORT_INFO // LdrpCheckRedirection
 	DWORD BaseNameHashValue; // LDR_DATA_TABLE_ENTRY::BaseNameHashValue of the dll the import belongs to
 	char* ImportName; // ASCII name of the import
 } IMPORT_INFO;
+
+// Notes
+
+/*
+
+> LdrpHashTable (global var)
+- Doubly linked list with 32 LIST_ENTRY's
+- Initialized in LdrpInitializeProcess
+- Entries are accessed with the equation "EntryIndex = LdrEntry.BaseNameHashValue & 0x1F"
+
+> LdrpImageEntry (global var)
+- Initialized in LdrpInitializeProcess as a pointer to the main executable's LDR_DATA_TABLE_ENTRY
+
+> _RTL_NT_HDR_FLAGS
+- I've only seen the reserved flag used in combination with DONT_CHECK_FILE_HDR_OFFSET
+  in LdrpValidateEntrySection, but it's not used in any way besides being counted 
+  towards the flag validity check, which just tests the flags against INVALID_FLAG_BITS
+
+*/
+
+// Extra
+
+inline FULL_PEB* NtCurrentPeb()
+{
+	return (FULL_PEB*)__readfsdword(FIELD_OFFSET(TEB, ProcessEnvironmentBlock));
+}
