@@ -111,3 +111,5 @@ typedef NTSTATUS(__stdcall ApiSetQueryApiSetPresence)(_In_ const UNICODE_STRING*
 typedef void(__fastcall LdrpInsertDataTableEntry)(_Inout_ DATA_TABLE_ENTRY* LdrEntry);
 
 typedef NT_HEADERS* (__stdcall RtlImageNtHeader)(_In_ const void* DllBase);
+
+typedef void(__fastcall RtlpInsertInvertedFunctionTableEntry)(_Reserved_ void* reserved, _In_ UINT DllBase, _In_ DWORD SEHandlerTable, _In_ UINT SizeOfImage, _In_ DWORD SEHandlerCount);

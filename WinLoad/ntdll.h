@@ -113,15 +113,22 @@ typedef IMAGE_COR20_HEADER COM_DESCRIPTOR, COR20_HEADER, CLR_HEADER;
 
 typedef IMAGE_BASE_RELOCATION BASE_RELOCATION, BASE_RELOC;
 
+typedef IMAGE_LOAD_CONFIG_DIRECTORY32 LOAD_CONFIG;
+
 // Structs (comments are the functions where they're initialized)
 
-/* UNFINISHED - REAL STRUCT NAME UNKNOWN */
+/* REAL STRUCT NAME UNKNOWN */
 typedef struct _LDRP_INVERTED_FUNCTION_TABLE_HEADER // RtlpInsertInvertedFunctionTableEntry
 {
-	DWORD* u1;
-	void* DllBase;
+	union // RtlEncodeSystemPointer/RtlDecodeSystemPointer (inlined)
+	{
+		DWORD SEHandlerTable; // RtlpxLookupFunctionTable
+		DWORD SEHandlerTableEncoded; // RtlInsertInvertedFunctionTable
+	};
+
+	void* DllBase;        // Base of the function table's corresponding dll
 	UINT SizeOfImage;
-	UINT SEHandlerCount;
+	DWORD SEHandlerCount; // LOAD_CONFIG::SEHandlerCount
 } LDRP_INVERTED_FUNCTION_TABLE_HEADER, INVERTED_FUNCTION_TABLE_HEADER;
 
 /* UNFINISHED - REAL STRUCT NAME UNKNOWN */
@@ -532,6 +539,9 @@ typedef struct _IMPORT_INFO // LdrpCheckRedirection
   in LdrpValidateEntrySection, but it's not used in any way besides being counted 
   towards the flag validity check, which just tests the flags against INVALID_FLAG_BITS
 
+> Global pointer encryption key ( MEMORY[0x7FFE0330] )
+- Static key used for pointer encryption/decryption
+
 */
 
 // Extra
@@ -539,4 +549,45 @@ typedef struct _IMPORT_INFO // LdrpCheckRedirection
 inline FULL_PEB* NtCurrentPeb()
 {
 	return (FULL_PEB*)__readfsdword(FIELD_OFFSET(TEB, ProcessEnvironmentBlock));
+}
+
+/* Exported and included in windows.h (not 1:1) */
+static __declspec(naked) void* __fastcall PtrEncode(void* ptr) // EncodeSystemPointer recreation
+{
+	__asm
+	{
+		push edx
+		mov eax, ds:0x7FFE0330
+		xor ecx, eax  // ptr ^= cookie
+		and eax, 0x1F // cookie & 0x1F
+		mov edx, ecx
+		mov ecx, eax
+		ror edx, cl
+		mov eax, edx
+		pop edx
+		retn 4
+	}
+}
+
+/* Exported and included in windows.h (not 1:1) */
+static __declspec(naked) void* __fastcall PtrDecode(void* EncryptedPtr) // DecodeSystemPointer recreation
+{
+	__asm
+	{
+		push edi
+		push edx
+		push ecx
+		mov eax, ds:0x7FFE0330
+		mov edi, eax
+		and edi, 0x1F
+		push 32
+		pop ecx
+		sub ecx, edi
+		pop edi
+		ror edi, cl
+		xor eax, edi
+		pop edx
+		pop edi
+		retn 4
+	}
 }

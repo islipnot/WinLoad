@@ -117,7 +117,7 @@ NTSTATUS RtlImageNtHeaderEx(ULONG flags, const DWORD* base, ULONG FileHdrOffset,
 NT_HEADERS* RtlImageNtHeader(const void* base)
 {
 	NT_HEADERS* NtHeader;
-	RtlImageNtHeaderEx(IGNORE_FILE_HDR_OFFSET, (DWORD*)base, 0, 0, &NtHeader);
+	RtlImageNtHeaderEx(IGNORE_FILE_HDR_OFFSET, (DWORD*)base, 0, &NtHeader);
 	return NtHeader;
 }
 
