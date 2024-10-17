@@ -155,37 +155,12 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 		struct
 		{
 			ULONG DontUseCOR : 1;
-			ULONG Unk2 : 1;
-			ULONG Unk3 : 1;
-			ULONG Unk4 : 1;
-			ULONG Unk5 : 1;
-			ULONG Unk6 : 1;
-			ULONG Unk7 : 1;
-			ULONG Unk8 : 1;
-			ULONG Unk9 : 1;
-			ULONG Unk10 : 1;
-			ULONG Unk11 : 1;
-			ULONG Unk12 : 1;
-			ULONG Unk13 : 1;
-			ULONG Unk14 : 1;
-			ULONG Unk15 : 1;
-			ULONG Unk16 : 1;
-			ULONG Unk17 : 1;
-			ULONG Unk18 : 1;
-			ULONG Unk19 : 1;
-			ULONG Unk20 : 1;
-			ULONG Unk21 : 1;
-			ULONG Unk22 : 1;
-			ULONG Unk23 : 1;
-			ULONG Unk24 : 1;
-			ULONG Unk25 : 1;
-			ULONG Unk26 : 1;
+			ULONG Unk1 : 25;
 			ULONG ContextCorImage : 1;
 			ULONG UseActivationContext : 1;
 			ULONG ContextCorILOnly : 1;
 			ULONG RedirectModule : 1;
-			ULONG Unk31 : 1;
-			ULONG Unk32 : 1;
+			ULONG Unk2 : 2;
 		};
 	};
 	char Pad1[4]; /* TODO: REVERSE THIS */
@@ -565,7 +540,7 @@ static __declspec(naked) void* __fastcall PtrEncode(void* ptr) // EncodeSystemPo
 		ror edx, cl
 		mov eax, edx
 		pop edx
-		retn 4
+		ret
 	}
 }
 
@@ -588,6 +563,6 @@ static __declspec(naked) void* __fastcall PtrDecode(void* EncryptedPtr) // Decod
 		xor eax, edi
 		pop edx
 		pop edi
-		retn 4
+		ret
 	}
 }
