@@ -2,6 +2,11 @@
 
 // Enums
 
+typedef enum _COR20_HDR_FLAGS
+{
+	unk1 = 1 // LdrpCompleteMapModule
+} COR20_HDR_FLAGS, CLR_HDR_FLAGS;
+
 typedef enum _RTL_NT_HDR_FLAGS // RtlImageNtHeader/RtlImageNtHeaderEx
 {
 	IGNORE_FILE_HDR_OFFSET = 1,
@@ -16,12 +21,13 @@ typedef enum _LDRP_LOAD_CONTEXT_FLAGS
 	Unknown0             = 0x0000020, // Used in LdrpLoadKnownDll/LdrpMapDllWithSectionHandle
 	Unknown6             = 0x0000100, // Used in LdrpMapDllNtFileName, 
 	Unknown2             = 0x0000200, // LdrpInitializeProcess/LdrpLoadKnownDll
+	Unknown8             = 0x0000800, // Used in LdrpLoadDependentModule
 	Unknown7             = 0x0008000, // LdrpAllocatePlaceHolder
 	Unknown3             = 0x0010000,
-	Unknown5             = 0x0080000,
-	Unknown4             = 0x0100000,
+	Unknown5             = 0x0080000, // LdrpSnapModule
+	Unknown4             = 0x0100000, // LdrpCheckForRetryLoading
 	ContextCorImage      = 0x0400000, // LdrpCompleteMapModule
-	UseActivationContext = 0x0800000,
+	UseActivationContext = 0x0800000, // Used in LdrpMinimalMapModule
 	ContextCorILOnly     = 0x1000000, // LdrpCompleteMapModule
 	RedirectModule       = 0x2000000  // LdrpMapAndSnapDependency
 } LDRP_LOAD_CONTEXT_FLAGS, LOAD_CONTEXT_FLAGS;
@@ -46,9 +52,9 @@ typedef enum _LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/k
 	ProcessAttachCalled     = 0x00080000,
 	ProcessAttachFailed     = 0x00100000,
 	CorDeferredValidate     = 0x00200000,
-	CorImage                = 0x00400000,
+	CorImage                = 0x00400000, // LdrpCompleteMapModule
 	DontRelocate            = 0x00800000,
-	CorILOnly               = 0x01000000,
+	CorILOnly               = 0x01000000, // LdrpCompleteMapModule
 	ChpeImage               = 0x02000000,
 	Redirected              = 0x10000000,
 	CompatDatabaseProcessed = 0x80000000,
@@ -87,14 +93,19 @@ typedef enum _LDR_DDAG_STATE // https://www.geoffchappell.com/studies/windows/km
 	LdrModulesReadyToRun             =  9
 } LDR_DDAG_STATE;
 
-enum API_MASKS // ApiSetQuerySchemaInfo/ApiSetResolveToHost
+enum STRING_MASKS
 {
-	API_HIGH      = 0x0002D0049, // "AP"
-	EXT_HIGH      = 0x0002D0054, // "T" (following char isn't checked)
-	API_LOW       = 0x000500041, // "I" (following char isn't checked)
-	EXT_LOW       = 0x000580045, // "EX"
+	// ApiSetQuerySchemaInfo/ApiSetResolveToHost
+	API_MASK_HIGH = 0x0FFFFFFDF,
 	API_MASK_LOW  = 0x0FFDFFFDF,
-	API_MASK_HIGH = 0x0FFFFFFDF
+	API_HIGH      = 0x0002D0049, // "AP"
+	API_LOW       = 0x000500041, // "I" (following char isn't checked)
+	EXT_HIGH      = 0x0002D0054, // "T" (following char isn't checked)
+	EXT_LOW       = 0x000580045, // "EX"
+
+	// LdrpResolveForwarder
+	NTDLL_MASK  = 0x020202020, // Converts any upper/lowercase combo of "ntdl" to lowercase
+	NTDLL_ASCII = 0x06C64746E  // "ntdl"
 };
 
 // Typedefs
@@ -134,20 +145,21 @@ typedef struct _LDRP_INVERTED_FUNCTION_TABLE_HEADER // RtlpInsertInvertedFunctio
 /* UNFINISHED - REAL STRUCT NAME UNKNOWN */
 typedef struct _LDRP_MODULE_PATH_DATA // LdrLoadDll
 {
-	PWSTR DllPath; // LdrpInitializeDllPath
-	char Unk1[4];
+	PWSTR ModulePath; // LdrpInitializeDllPath
+	char Unk1[4]; // LdrpComputeLazyDllPath
 	PWSTR PackageDirs;
-	ULONG Flags;   // LdrpInitializeDllPath
-	PWSTR DllName; // LdrpInitializeDllPath
-	char Unk2[58];
+	ULONG ImplicitPathOptions; // LdrpInitializeDllPath
+	PWSTR ModuleName; // LdrpInitializeDllPath
+	WCHAR CachedPath[26];
+	char Unk2[6];
 } LDRP_MODULE_PATH_DATA, MODULE_PATH_DATA;
 
 /* UNFINISHED */
 typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), LdrpInitializeProcess (process context)
 {
-	UNICODE_STRING ModulePath; // LdrpAllocatePlaceHolder
+	UNICODE_STRING ModuleName; // LdrpAllocatePlaceHolder
 	MODULE_PATH_DATA* PathData; // LdrpAllocatePlaceHolder
-	HMODULE Handle;   // LdrpMapDllNtFileName
+	HANDLE SectionHandle;   // LdrpMapDllNtFileName
 	union // Flags are accessed both as a ULONG and a bitfield, depending on the function.
 	{
 		ULONG Flags;      // LdrpAllocatePlaceHolder
@@ -173,19 +185,19 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	LDR_DATA_TABLE_ENTRY** DependencyEntryList; // LdrpMapAndSnapDependency
 	ULONG DependencyCount;    // LdrpMapAndSnapDependency
 	ULONG DependencysWithIAT; // LdrpMapAndSnapDependency
-	IMAGE_THUNK_DATA32* IAT;
-	ULONG IATSize;
+	void* IATSection;    // LdrpPrepareImportAddressTableForSnap - base of section that contains IAT
+	UINT IATSectionSize; // LdrpPrepareImportAddressTableForSnap - size of section that contains IAT
 	ULONG DependencyIndex; // LdrpSnapModule (DependencyEntryList)
 	ULONG IATIndex;        // LdrpSnapModule
-	IMAGE_IMPORT_DESCRIPTOR* ImportDirectory;
+	IMAGE_IMPORT_DESCRIPTOR* ImportDirectory; // LdrpMapAndSnapDependency
 	ULONG OldIATProtect;
 	DWORD* GuardCFCheckFunctionPointer;
 	DWORD GuardCFCheckFunctionPointerVA;
 	DWORD FileHeaderOffset; // Used in LdrpMapDllWithSectionHandle
 	int UnknownINT; /* TODO: REVERSE THIS */
-	char Pad2[4];
+	HANDLE FileHandle; // LdrpMapDllNtFileName (initialized as INVALID_HANDLE_VALUE in LdrpAllocatePlaceHolder)
 	BYTE* ModuleSectionBase;
-	WCHAR ModulePathBase;
+	WCHAR ModuleNameBase;
 } LDRP_LOAD_CONTEXT, LOAD_CONTEXT;
 
 typedef struct _LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
@@ -516,6 +528,10 @@ typedef struct _IMPORT_INFO // LdrpCheckRedirection
 
 > Global pointer encryption key ( MEMORY[0x7FFE0330] )
 - Static key used for pointer encryption/decryption
+
+> LdrpSaferIsDllAllowedRoutine (global var)
+- Initialized in LdrpCodeAuthzInitialize as a pointer to ADVAPI32.DLL!SaferiIsDllAllowed
+- Inline encoded with the same method as EncodeSystemPointer
 
 */
 

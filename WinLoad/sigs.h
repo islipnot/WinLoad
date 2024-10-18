@@ -113,3 +113,11 @@ typedef void(__fastcall LdrpInsertDataTableEntry)(_Inout_ DATA_TABLE_ENTRY* LdrE
 typedef NT_HEADERS* (__stdcall RtlImageNtHeader)(_In_ const void* DllBase);
 
 typedef void(__fastcall RtlpInsertInvertedFunctionTableEntry)(_Reserved_ void* reserved, _In_ UINT DllBase, _In_ DWORD SEHandlerTable, _In_ UINT SizeOfImage, _In_ DWORD SEHandlerCount);
+
+typedef int(__fastcall RtlRemoveInvertedFunctionTable)(_In_ DWORD DllBase);
+
+typedef void(__fastcall RtlxRemoveInvertedFunctionTable)(_Reserved_ int reserved, _In_ DWORD DllBase);
+
+typedef int(__fastcall RtlpRemoveInvertedFunctionTableEntry)(_Reserved_ int reserved, _In_ int HeaderIndex);
+
+typedef NTSTATUS(__fastcall LdrpResolveForwarder)(_In_ const char* ForwarderStr, _Inout_ DATA_TABLE_ENTRY* DependencyLdrEntry, _Inout_ DATA_TABLE_ENTRY* ParentLdrEntry, _Out_ void** RedirectionStatus);
