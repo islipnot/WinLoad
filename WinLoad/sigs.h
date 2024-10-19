@@ -121,3 +121,9 @@ typedef void(__fastcall RtlxRemoveInvertedFunctionTable)(_Reserved_ int reserved
 typedef int(__fastcall RtlpRemoveInvertedFunctionTableEntry)(_Reserved_ int reserved, _In_ int HeaderIndex);
 
 typedef NTSTATUS(__fastcall LdrpResolveForwarder)(_In_ const char* ForwarderStr, _Inout_ DATA_TABLE_ENTRY* DependencyLdrEntry, _Inout_ DATA_TABLE_ENTRY* ParentLdrEntry, _Out_ void** RedirectionStatus);
+
+typedef void* (__fastcall LdrpFreeLoadContext)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef DATA_TABLE_ENTRY* (__fastcall LdrpHandleReplacedModule)(_In_ const DATA_TABLE_ENTRY* ReplacedModule);
+
+typedef void* (__fastcall LdrpFreeReplacedModule)(_Inout_ DATA_TABLE_ENTRY* ReplacedModule);

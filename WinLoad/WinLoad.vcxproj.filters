@@ -35,5 +35,8 @@
     <ClCompile Include="ImageParsing.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Ldr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

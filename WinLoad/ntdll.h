@@ -22,9 +22,9 @@ typedef enum _LDRP_LOAD_CONTEXT_FLAGS
 	Unknown6             = 0x0000100, // Used in LdrpMapDllNtFileName, 
 	Unknown2             = 0x0000200, // LdrpInitializeProcess/LdrpLoadKnownDll
 	Unknown8             = 0x0000800, // Used in LdrpLoadDependentModule
-	Unknown7             = 0x0008000, // LdrpAllocatePlaceHolder
+	Unknown7             = 0x0008000, // LdrpAllocatePlaceHolder - used in LdrpFreeLoadContext
 	Unknown3             = 0x0010000,
-	Unknown5             = 0x0080000, // LdrpSnapModule
+	Unknown5             = 0x0080000, // LdrpSnapModule - used in LdrpHandleReplacedModule
 	Unknown4             = 0x0100000, // LdrpCheckForRetryLoading
 	ContextCorImage      = 0x0400000, // LdrpCompleteMapModule
 	UseActivationContext = 0x0800000, // Used in LdrpMinimalMapModule
@@ -143,7 +143,7 @@ typedef struct _LDRP_INVERTED_FUNCTION_TABLE_HEADER // RtlpInsertInvertedFunctio
 } LDRP_INVERTED_FUNCTION_TABLE_HEADER, INVERTED_FUNCTION_TABLE_HEADER;
 
 /* UNFINISHED - REAL STRUCT NAME UNKNOWN */
-typedef struct _LDRP_MODULE_PATH_DATA // LdrLoadDll
+typedef struct _LDRP_MODULE_PATH_DATA // LdrLoadDll/LdrGetDllHandleEx
 {
 	PWSTR ModulePath; // LdrpInitializeDllPath
 	char Unk1[4]; // LdrpComputeLazyDllPath
@@ -151,7 +151,12 @@ typedef struct _LDRP_MODULE_PATH_DATA // LdrLoadDll
 	ULONG ImplicitPathOptions; // LdrpInitializeDllPath
 	PWSTR ModuleName; // LdrpInitializeDllPath
 	WCHAR CachedPath[26];
-	char Unk2[6];
+	union
+	{
+		DWORD DwordUnk2;
+		BYTE BytesUnk2[4];
+	};
+	char padding[2];
 } LDRP_MODULE_PATH_DATA, MODULE_PATH_DATA;
 
 /* UNFINISHED */
@@ -177,12 +182,12 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	};
 	char Pad1[4]; /* TODO: REVERSE THIS */
 	NTSTATUS* pState; // LdrpAllocatePlaceHolder
-	LDR_DATA_TABLE_ENTRY* ParentLdrEntry; // LdrpAllocatePlaceHolder
-	LDR_DATA_TABLE_ENTRY* LdrEntry;       // LdrpAllocateModuleEntry
+	DATA_TABLE_ENTRY* ParentLdrEntry; // LdrpAllocatePlaceHolder
+	DATA_TABLE_ENTRY* LdrEntry;       // LdrpAllocateModuleEntry
 	DWORD* LdrpWorkQueue;   // LdrpQueueWork
 	DWORD** pLdrpWorkQueue; // LdrpQueueWork
-	LDR_DATA_TABLE_ENTRY* ReplacedModule;
-	LDR_DATA_TABLE_ENTRY** DependencyEntryList; // LdrpMapAndSnapDependency
+	DATA_TABLE_ENTRY* ReplacedModule;
+	DATA_TABLE_ENTRY** DependencyEntryList; // LdrpMapAndSnapDependency
 	ULONG DependencyCount;    // LdrpMapAndSnapDependency
 	ULONG DependencysWithIAT; // LdrpMapAndSnapDependency
 	void* IATSection;    // LdrpPrepareImportAddressTableForSnap - base of section that contains IAT
@@ -255,10 +260,10 @@ typedef struct _FULL_LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studi
 		{
 			ULONG PackagedBinary : 1;
 			ULONG MarkedForRemoval : 1;
-			ULONG ImageDll : 1;
+			ULONG ImageDll : 1; // LdrpAllocateModuleEntry
 			ULONG LoadNotificationsSent : 1;
 			ULONG TelemetryEntryProcessed : 1;
-			ULONG ProcessStaticImport : 1;
+			ULONG ProcessStaticImport : 1; // LdrpAllocateModuleEntry
 			ULONG InLegacyLists : 1;
 			ULONG InIndexes : 1;
 			ULONG ShimDll : 1;
@@ -278,12 +283,12 @@ typedef struct _FULL_LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studi
 			ULONG CorILOnly : 1;
 			ULONG ChpeImage : 1;
 			ULONG ReservedFlags5 : 2;
-			ULONG Redirected : 1;
+			ULONG Redirected : 1; // LdrpAllocateModuleEntry
 			ULONG ReservedFlags6 : 2;
 			ULONG CompatDatabaseProcessed : 1;
 		};
 	};
-	USHORT ObsoleteLoadCount;
+	USHORT ObsoleteLoadCount; // LdrpAllocateModuleEntry
 	USHORT TlsIndex;
 	LIST_ENTRY HashLinks; // LdrpInsertDataTableEntry
 	ULONG TimeDateStamp;
@@ -291,7 +296,7 @@ typedef struct _FULL_LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studi
 	PVOID Lock;
 	LDR_DDAG_NODE* DdagNode;
 	LIST_ENTRY NodeModuleLink;
-	LOAD_CONTEXT* LoadContext;
+	LOAD_CONTEXT* LoadContext; // LdrpAllocateModuleEntry
 	PVOID ParentDllBase;
 	PVOID SwitchBackContext;
 	RTL_BALANCED_NODE BaseAddressIndexNode;
@@ -300,7 +305,7 @@ typedef struct _FULL_LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studi
 	LARGE_INTEGER LoadTime;
 	ULONG BaseNameHashValue; // LdrpInsertDataTableEntry (calulated via LdrpHashUnicodeString)
 	DLL_LOAD_REASON LoadReason;
-	ULONG ImplicitPathOptions;
+	ULONG ImplicitPathOptions; // LdrpAllocateModuleEntry (LoadContext->PathData->ImplicitPathOptions)
 	ULONG ReferenceCount;
 	ULONG DependentLoadFlags;
 	UCHAR SigningLevel;
@@ -532,6 +537,12 @@ typedef struct _IMPORT_INFO // LdrpCheckRedirection
 > LdrpSaferIsDllAllowedRoutine (global var)
 - Initialized in LdrpCodeAuthzInitialize as a pointer to ADVAPI32.DLL!SaferiIsDllAllowed
 - Inline encoded with the same method as EncodeSystemPointer
+
+> LDRP_MODULE_PATH_DATA
+- This struct isn't exclusive to instances of LDRP_LOAD_CONTEXT, it can be seen
+  initialized and used on its own in LdrGetDllHandleEx, and then destroyed at
+  the end of the function. So the comments next to members aren't the only places
+  where the members are initialized/used
 
 */
 
