@@ -139,16 +139,27 @@
   <ItemGroup>
     <ClInclude Include="ntdll.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="recreations.h" />
     <ClInclude Include="sigs.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ApiResolution.c" />
-    <ClCompile Include="Ldr.c" />
+    <ClCompile Include="ApiResolution.c">
+      <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExceptionHandling>
+      <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExceptionHandling>
+    </ClCompile>
+    <ClCompile Include="Ldr.c">
+      <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExceptionHandling>
+      <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExceptionHandling>
+    </ClCompile>
+    <ClCompile Include="main.c" />
     <ClCompile Include="pch.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="ImageParsing.c" />
+    <ClCompile Include="ImageParsing.c">
+      <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExceptionHandling>
+      <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExceptionHandling>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

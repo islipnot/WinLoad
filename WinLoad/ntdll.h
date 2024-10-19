@@ -182,12 +182,12 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	};
 	char Pad1[4]; /* TODO: REVERSE THIS */
 	NTSTATUS* pState; // LdrpAllocatePlaceHolder
-	DATA_TABLE_ENTRY* ParentLdrEntry; // LdrpAllocatePlaceHolder
-	DATA_TABLE_ENTRY* LdrEntry;       // LdrpAllocateModuleEntry
+	struct DATA_TABLE_ENTRY* ParentLdrEntry; // LdrpAllocatePlaceHolder
+	struct DATA_TABLE_ENTRY* LdrEntry;       // LdrpAllocateModuleEntry
 	DWORD* LdrpWorkQueue;   // LdrpQueueWork
 	DWORD** pLdrpWorkQueue; // LdrpQueueWork
-	DATA_TABLE_ENTRY* ReplacedModule;
-	DATA_TABLE_ENTRY** DependencyEntryList; // LdrpMapAndSnapDependency
+	struct DATA_TABLE_ENTRY* ReplacedModule;
+	struct DATA_TABLE_ENTRY** DependencyEntryList; // LdrpMapAndSnapDependency
 	ULONG DependencyCount;    // LdrpMapAndSnapDependency
 	ULONG DependencysWithIAT; // LdrpMapAndSnapDependency
 	void* IATSection;    // LdrpPrepareImportAddressTableForSnap - base of section that contains IAT
@@ -310,6 +310,12 @@ typedef struct _FULL_LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studi
 	ULONG DependentLoadFlags;
 	UCHAR SigningLevel;
 } FULL_LDR_DATA_TABLE_ENTRY, DATA_TABLE_ENTRY;
+
+typedef struct _LOAD_ORDER_MODULE_LIST_ENTRY
+{
+	LIST_ENTRY ListEntry;
+	DATA_TABLE_ENTRY* LdrEntry;
+} LOAD_ORDER_MODULE_LIST_ENTRY;
 
 typedef struct _API_SET_VALUE_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
@@ -544,6 +550,12 @@ typedef struct _IMPORT_INFO // LdrpCheckRedirection
   the end of the function. So the comments next to members aren't the only places
   where the members are initialized/used
 
+> LDRP_LOAD_CONTEXT
+- The load context of a module seems to always be freed once the image is fully 
+  loaded. However, the corresponding LDR_DATA_TABLE_ENTRY::LoadContext still 
+  points to where the load context used to be. Ntdll's LoadContext entry, as
+  far as I know, is the only one that will be null, which it will always be.
+
 */
 
 // Extra
@@ -552,8 +564,8 @@ inline FULL_PEB* NtCurrentPeb()
 {
 	return (FULL_PEB*)__readfsdword(FIELD_OFFSET(TEB, ProcessEnvironmentBlock));
 }
-
-/* Exported and included in windows.h (not 1:1) */
+ 
+/* Exported and included in windows.h(not 1:1) */
 static __declspec(naked) void* __fastcall PtrEncode(void* ptr) // EncodeSystemPointer recreation
 {
 	__asm
@@ -571,7 +583,7 @@ static __declspec(naked) void* __fastcall PtrEncode(void* ptr) // EncodeSystemPo
 	}
 }
 
-/* Exported and included in windows.h (not 1:1) */
+/* Exported and included in windows.h(not 1:1) */
 static __declspec(naked) void* __fastcall PtrDecode(void* EncryptedPtr) // DecodeSystemPointer recreation
 {
 	__asm

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "ntdll.h"
+#include "recreations.h"
 
 HOST_ENTRY* ApiSetpSearchForApiSetHost(const NAMESPACE_ENTRY* NsEntry, const PWSTR HostName, UINT16 HostNameSz, const NAMESPACE_HEADER* ApiSetMap)
 {
@@ -49,7 +50,7 @@ NAMESPACE_ENTRY* ApiSetpSearchForApiSet(const NAMESPACE_HEADER* ApiSetMap, PWSTR
 	{
 		PWSTR pApiName = ApiName;
 
-		for (int i = ApiSubNameSz;; --i)
+		for (int i = ApiSubNameSz; i; --i)
 		{
 			WCHAR ch = *pApiName;
 
@@ -58,8 +59,6 @@ NAMESPACE_ENTRY* ApiSetpSearchForApiSet(const NAMESPACE_HEADER* ApiSetMap, PWSTR
 
 			++pApiName;
 			ApiHash = ch + (ApiSetMap->Multiplier * ApiHash);
-
-			if (!i) break;
 		}
 	}
 
@@ -75,13 +74,13 @@ NAMESPACE_ENTRY* ApiSetpSearchForApiSet(const NAMESPACE_HEADER* ApiSetMap, PWSTR
 		const int EntryIndex = (LowerBound + UpperBound) >> 1;
 		HashEntryOffset = HashOffset + (sizeof(HASH_ENTRY) * EntryIndex);
 
-		if (ApiHash < *(DWORD*)((char*)(ApiSetMap) + HashEntryOffset))
+		if (ApiHash < *(DWORD*)((char*)ApiSetMap + HashEntryOffset))
 		{
 			LowerBound = EntryIndex - 1;
 		}
 		else
 		{
-			if (ApiHash <= *(DWORD*)((char*)(ApiSetMap) + HashEntryOffset))
+			if (ApiHash <= *(DWORD*)((char*)ApiSetMap + HashEntryOffset))
 				break;
 
 			UpperBound = EntryIndex + 1;
@@ -268,7 +267,7 @@ NTSTATUS ApiSetQuerySchemaInfo(const NAMESPACE_HEADER* ApiSetMap, const UNICODE_
 					while ((UINT16)(*NseDetails - 48) <= 9)
 					{
 						NseDetails = *NseDetails++;
-						NseHash = NseDetails + (10 * NseHash) - 48;
+						NseHash = (UINT)(NseDetails + (10 * NseHash) - 48);
 						if ((int)--NseDetailSz < 1) goto check_if_in_schema;
 					}
 				}
@@ -333,5 +332,3 @@ NTSTATUS LdrpParseForwarderDescription(const char* forwarder, STRING* DllName, c
 
 	return STATUS_INVALID_IMAGE_FORMAT;
 }
-
-int main() { return 0; }
