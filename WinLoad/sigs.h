@@ -1,4 +1,5 @@
 #pragma once
+
 #include "pch.h"
 #include "ntdll.h"
 
@@ -86,7 +87,7 @@ typedef NTSTATUS(__fastcall LdrpCompleteMapModule)(_In_ LOAD_CONTEXT* LoadContex
 
 typedef bool(__fastcall LdrpIsILOnlyImage)(_In_ void* base);
 
-typedef NTSTATUS(__fastcall LdrpRelocateImage)(_In_ void* base, _In_ ULONG LoadContextUnknownVar1, _In_ NT_HEADERS* NtHeaders, _In_ UNICODE_STRING* DllName);
+typedef NTSTATUS(__fastcall LdrpRelocateImage)(_In_ void* base, _In_ DWORD FileHdrOffset, _In_ NT_HEADERS* NtHeaders, _In_ UNICODE_STRING* DllName);
 
 typedef NTSTATUS(__fastcall LdrpProtectAndRelocateImage)(_In_ void* base);
 

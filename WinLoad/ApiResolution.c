@@ -7,36 +7,36 @@ HOST_ENTRY* ApiSetpSearchForApiSetHost(const NAMESPACE_ENTRY* NsEntry, const PWS
 	const DWORD HostEntryOffset = NsEntry->HostEntryOffset;
 	HOST_ENTRY* FirstHostEntry = (HOST_ENTRY*)((char*)(ApiSetMap) + HostEntryOffset);
 
-	int UpperBound = 1;
 	int LowerBound = NsEntry->HostCount - 1;
-	int NextUpperBound = 1;
 
 	if (LowerBound >= 1) // Checking if the host count is greater than 1 (highest seen host count in windows is 2).
 	{
-		const DWORD dwHostNameSz = (DWORD)HostNameSz;
-		const DWORD dwApiSetMap = (DWORD)ApiSetMap;
+		// Performing a binary search for the correct HOST_ENTRY structure
+
+		int UpperBoundd = 1;
+		int NextUpperBound = 1;
 
 		do
 		{
-			const DWORD EntryIndex = (LowerBound + UpperBound) >> 1;
-			HOST_ENTRY* HostEntry = (HOST_ENTRY*)(dwApiSetMap + HostEntryOffset + (sizeof(HOST_ENTRY) * EntryIndex));
+			const DWORD EntryIndex = (LowerBound + UpperBoundd) >> 1;
+			HOST_ENTRY* HostEntry = (HOST_ENTRY*)((DWORD)ApiSetMap + HostEntryOffset + (sizeof(HOST_ENTRY) * EntryIndex));
 
 			// The actual function uses RtlCompareUnicodeStrings here.
-			const int StrDif = _wcsnicmp(HostName, (PWSTR)(dwApiSetMap + HostEntry->NameOffset), HostEntry->NameLength >> 1);
+			const int StrDif = _wcsnicmp(HostName, (PWSTR)((DWORD)ApiSetMap + HostEntry->NameOffset), HostEntry->NameLength >> 1);
 
 			if (StrDif < 0)
 			{
-				UpperBound = NextUpperBound;
+				UpperBoundd = NextUpperBound;
 				LowerBound = EntryIndex - 1;
 			}
 			else
 			{
 				if (!StrDif) return HostEntry;
 
-				UpperBound = EntryIndex + 1;
+				UpperBoundd = EntryIndex + 1;
 				NextUpperBound = EntryIndex + 1;
 			}
-		} while (UpperBound <= LowerBound);
+		} while (UpperBoundd <= LowerBound);
 	}
 	
 	return FirstHostEntry;
@@ -69,7 +69,7 @@ NAMESPACE_ENTRY* ApiSetpSearchForApiSet(const NAMESPACE_HEADER* ApiSetMap, PWSTR
 	DWORD HashOffset = ApiSetMap->HashOffset;
 	DWORD HashEntryOffset;
 
-	while (true) // Getting API set's corresponding HASH_TABLE entry
+	while (true) // Performing binary search for the corresponding HASH_ENTRY structure
 	{
 		const int EntryIndex = (LowerBound + UpperBound) >> 1;
 		HashEntryOffset = HashOffset + (sizeof(HASH_ENTRY) * EntryIndex);
@@ -322,7 +322,7 @@ NTSTATUS LdrpParseForwarderDescription(const char* forwarder, STRING* DllName, c
 				*pExportName = ExportName;
 				return STATUS_SUCCESS;
 			}
-
+			
 			ExportName = 0;
 
 			if (RtlCharToInteger(LastPeriod + 2, 0, ordinal) >= 0)

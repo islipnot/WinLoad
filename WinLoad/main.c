@@ -4,8 +4,8 @@
 
 void ListModules()
 {
-    LIST_ENTRY* ModuleListHead = &NtCurrentPeb()->Ldr->InLoadOrderModuleList;
-    LOAD_ORDER_MODULE_LIST_ENTRY* ModuleList = (LOAD_ORDER_MODULE_LIST_ENTRY*)ModuleListHead->Flink;
+    const LIST_ENTRY* ModuleListHead = &NtCurrentPeb()->Ldr->InLoadOrderModuleList;
+    MODULE_LIST_ENTRY* ModuleList = (MODULE_LIST_ENTRY*)ModuleListHead->Flink;
 
     for (int i = 1; ModuleList->ListEntry.Flink != ModuleListHead; ++i)
     {
@@ -17,7 +17,7 @@ void ListModules()
         printf("- DllBase: 0x%X\n",       (UINT)LdrEntry->DllBase);
         printf("- ParentDllBase: 0x%X\n", (UINT)LdrEntry->ParentDllBase);
 
-        ModuleList = (LOAD_ORDER_MODULE_LIST_ENTRY*)ModuleList->ListEntry.Flink;
+        ModuleList = (MODULE_LIST_ENTRY*)ModuleList->ListEntry.Flink;
     }
 }
 

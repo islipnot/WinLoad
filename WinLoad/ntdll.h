@@ -2,6 +2,7 @@
 
 // Enums
 
+/* UNFINISHED */
 typedef enum _COR20_HDR_FLAGS
 {
 	unk1 = 1 // LdrpCompleteMapModule
@@ -14,25 +15,26 @@ typedef enum _RTL_NT_HDR_FLAGS // RtlImageNtHeader/RtlImageNtHeaderEx
 	INVALID_FLAG_BITS      = 0xFFFFFFFC,
 } RTL_NT_HDR_FLAGS, NT_HDR_FLAGS;
 
+/* UNFINISHED */
 typedef enum _LDRP_LOAD_CONTEXT_FLAGS
 {
-	DontUseCOR           = 0x0000001, // LdrpInitializeProcess
-	Unknown1             = 0x0000008, // Used in LdrpLoadKnownDll/LdrpFindLoadedDllByNameLockHeld
-	Unknown0             = 0x0000020, // Used in LdrpLoadKnownDll/LdrpMapDllWithSectionHandle
-	Unknown6             = 0x0000100, // Used in LdrpMapDllNtFileName, 
-	Unknown2             = 0x0000200, // LdrpInitializeProcess/LdrpLoadKnownDll
-	Unknown8             = 0x0000800, // Used in LdrpLoadDependentModule
-	Unknown7             = 0x0008000, // LdrpAllocatePlaceHolder - used in LdrpFreeLoadContext
-	Unknown3             = 0x0010000,
-	Unknown5             = 0x0080000, // LdrpSnapModule - used in LdrpHandleReplacedModule
-	Unknown4             = 0x0100000, // LdrpCheckForRetryLoading
-	ContextCorImage      = 0x0400000, // LdrpCompleteMapModule
-	UseActivationContext = 0x0800000, // Used in LdrpMinimalMapModule
-	ContextCorILOnly     = 0x1000000, // LdrpCompleteMapModule
-	RedirectModule       = 0x2000000  // LdrpMapAndSnapDependency
+	DontUseCOR       = 0x0000001, // LdrpInitializeProcess
+	Unknown1         = 0x0000008, // Used in LdrpLoadKnownDll/LdrpFindLoadedDllByNameLockHeld
+	Unknown0         = 0x0000020, // Used in LdrpLoadKnownDll/LdrpMapDllWithSectionHandle
+	Unknown6         = 0x0000100, // Used in LdrpMapDllNtFileName, 
+	Unknown2         = 0x0000200, // LdrpInitializeProcess/LdrpLoadKnownDll
+	Unknown8         = 0x0000800, // Used in LdrpLoadDependentModule
+	Unknown7         = 0x0008000, // LdrpAllocatePlaceHolder - used in LdrpFreeLoadContext
+	Unknown3         = 0x0010000,
+	Unknown5         = 0x0080000, // LdrpSnapModule - used in LdrpHandleReplacedModule
+	Unknown4         = 0x0100000, // LdrpCheckForRetryLoading
+	ContextCorImage  = 0x0400000, // LdrpCompleteMapModule
+	Unknown9         = 0x0800000, // Used in LdrpMinimalMapModule/LdrpMapDllWithSectionHandle
+	ContextCorILOnly = 0x1000000, // LdrpCompleteMapModule
+	RedirectModule   = 0x2000000  // LdrpMapAndSnapDependency
 } LDRP_LOAD_CONTEXT_FLAGS, LOAD_CONTEXT_FLAGS;
 
-typedef enum _LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
+typedef enum _LDR_ENTRY_FLAGS // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {
 	PackagedBinary          = 0x00000001,
 	MarkedForRemoval        = 0x00000002,
@@ -41,7 +43,7 @@ typedef enum _LDR_ENTRY_MASKS // https://www.geoffchappell.com/studies/windows/k
 	TelemetryEntryProcessed = 0x00000010,
 	ProcessStaticImport     = 0x00000020,
 	InLegacyLists           = 0x00000040,
-	InIndexes               = 0x00000080,
+	InIndexes               = 0x00000080, // LdrpInsertModuleToIndexLockHeld
 	ShimDll                 = 0x00000100,
 	InExceptionTable        = 0x00000200,
 	LoadInProgress          = 0x00001000,
@@ -128,8 +130,14 @@ typedef IMAGE_LOAD_CONFIG_DIRECTORY32 LOAD_CONFIG;
 
 // Structs (comments are the functions where they're initialized)
 
+typedef struct _PE_IMAGE_CREATION_INFO // LdrpMapDllWithSectionHandle (passed to LdrpFindLoadedDllByMappingLockHeld)
+{
+	UINT TimeDateStamp; // NtHeader->FileHeader.TimeDateStamp
+	UINT SizeOfImage;   // NtHeader->OptionalHeader.SizeOfImage
+} PE_IMAGE_CREATION_INFO;
+
 /* REAL STRUCT NAME UNKNOWN */
-typedef struct _LDRP_INVERTED_FUNCTION_TABLE_HEADER // RtlpInsertInvertedFunctionTableEntry
+typedef struct _LDRP_INVERTED_FUNCTION_TABLE_ENTRY // RtlpInsertInvertedFunctionTableEntry
 {
 	union // RtlEncodeSystemPointer/RtlDecodeSystemPointer (inlined)
 	{
@@ -140,7 +148,7 @@ typedef struct _LDRP_INVERTED_FUNCTION_TABLE_HEADER // RtlpInsertInvertedFunctio
 	void* DllBase;        // Base of the function table's corresponding dll
 	UINT SizeOfImage;
 	DWORD SEHandlerCount; // LOAD_CONFIG::SEHandlerCount
-} LDRP_INVERTED_FUNCTION_TABLE_HEADER, INVERTED_FUNCTION_TABLE_HEADER;
+} LDRP_INVERTED_FUNCTION_TABLE_ENTRY, INVERTED_FUNCTION_TABLE_ENTRY;
 
 /* UNFINISHED - REAL STRUCT NAME UNKNOWN */
 typedef struct _LDRP_MODULE_PATH_DATA // LdrLoadDll/LdrGetDllHandleEx
@@ -180,7 +188,7 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 			ULONG Unk2 : 2;
 		};
 	};
-	char Pad1[4]; /* TODO: REVERSE THIS */
+	char reserved[4]; // Haven't seen this used at all, and load context's are freed after the image is loaded.
 	NTSTATUS* pState; // LdrpAllocatePlaceHolder
 	struct DATA_TABLE_ENTRY* ParentLdrEntry; // LdrpAllocatePlaceHolder
 	struct DATA_TABLE_ENTRY* LdrEntry;       // LdrpAllocateModuleEntry
@@ -199,7 +207,7 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	DWORD* GuardCFCheckFunctionPointer;
 	DWORD GuardCFCheckFunctionPointerVA;
 	DWORD FileHeaderOffset; // Used in LdrpMapDllWithSectionHandle
-	int UnknownINT; /* TODO: REVERSE THIS */
+	int UnknownINT; // I think I saw this referenced before but I cant find it in load context xrefs. Might be unused.
 	HANDLE FileHandle; // LdrpMapDllNtFileName (initialized as INVALID_HANDLE_VALUE in LdrpAllocatePlaceHolder)
 	BYTE* ModuleSectionBase;
 	WCHAR ModuleNameBase;
@@ -237,6 +245,12 @@ typedef struct _RTL_BALANCED_NODE // https://www.geoffchappell.com/studies/windo
 		ULONG_PTR ParentValue;
 	};
 } RTL_BALANCED_NODE;
+
+typedef struct _RTL_RB_TREE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/shared/rtlrbtree/rtl_rb_tree.htm
+{
+	RTL_BALANCED_NODE* Root;
+	RTL_BALANCED_NODE* Min;
+} RTL_RB_TREE;
 
 typedef struct _FULL_LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_data_table_entry.htm
 {
@@ -311,11 +325,11 @@ typedef struct _FULL_LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studi
 	UCHAR SigningLevel;
 } FULL_LDR_DATA_TABLE_ENTRY, DATA_TABLE_ENTRY;
 
-typedef struct _LOAD_ORDER_MODULE_LIST_ENTRY
+typedef struct _MODULE_LIST_ENTRY
 {
 	LIST_ENTRY ListEntry;
 	DATA_TABLE_ENTRY* LdrEntry;
-} LOAD_ORDER_MODULE_LIST_ENTRY;
+} MODULE_LIST_ENTRY;
 
 typedef struct _API_SET_VALUE_ENTRY // https://www.geoffchappell.com/studies/windows/win32/apisetschema/index.htm
 {
