@@ -13,12 +13,12 @@ HOST_ENTRY* ApiSetpSearchForApiSetHost(const NAMESPACE_ENTRY* NsEntry, const PWS
 	{
 		// Performing a binary search for the correct HOST_ENTRY structure
 
-		int UpperBoundd = 1;
+		int UpperBound = 1;
 		int NextUpperBound = 1;
 
 		do
 		{
-			const DWORD EntryIndex = (LowerBound + UpperBoundd) >> 1;
+			const DWORD EntryIndex = (LowerBound + UpperBound) >> 1;
 			HOST_ENTRY* HostEntry = (HOST_ENTRY*)((DWORD)ApiSetMap + HostEntryOffset + (sizeof(HOST_ENTRY) * EntryIndex));
 
 			// The actual function uses RtlCompareUnicodeStrings here.
@@ -26,17 +26,17 @@ HOST_ENTRY* ApiSetpSearchForApiSetHost(const NAMESPACE_ENTRY* NsEntry, const PWS
 
 			if (StrDif < 0)
 			{
-				UpperBoundd = NextUpperBound;
+				UpperBound = NextUpperBound;
 				LowerBound = EntryIndex - 1;
 			}
 			else
 			{
 				if (!StrDif) return HostEntry;
 
-				UpperBoundd = EntryIndex + 1;
+				UpperBound = EntryIndex + 1;
 				NextUpperBound = EntryIndex + 1;
 			}
-		} while (UpperBoundd <= LowerBound);
+		} while (UpperBound <= LowerBound);
 	}
 	
 	return FirstHostEntry;

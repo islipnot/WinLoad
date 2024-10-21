@@ -56,7 +56,7 @@ NTSTATUS RtlpImageDirectoryEntryToData64(const BYTE* base, bool MappedAsImage, U
 	return STATUS_INVALID_PARAMETER;
 }
 
-NTSTATUS RtlImageNtHeaderEx(ULONG flags, const DWORD* base, ULONG FileHdrOffset, NT_HEADERS** pNtHeader) // 1:1 sig in sigs.h
+NTSTATUS RtlImageNtHeaderEx(ULONG flags, const DWORD* base, SIZE_T ViewSize, NT_HEADERS** pNtHeader) // 1:1 sig in sigs.h
 {
 	if (!pNtHeader) return STATUS_INVALID_PARAMETER;
 
@@ -67,14 +67,14 @@ NTSTATUS RtlImageNtHeaderEx(ULONG flags, const DWORD* base, ULONG FileHdrOffset,
 
 	bool CheckFileHdrOffset;
 
-	if ((flags & IGNORE_FILE_HDR_OFFSET) != 0)
+	if ((flags & IGNORE_VIEW_SIZE) != 0)
 	{
 		CheckFileHdrOffset = false;
 	}
 	else
 	{
 		CheckFileHdrOffset = true;
-		if (FileHdrOffset < 0x40) return STATUS_INVALID_IMAGE_FORMAT;
+		if (ViewSize < 0x40) return STATUS_INVALID_IMAGE_FORMAT;
 	}
 
 	NTSTATUS result;
@@ -84,7 +84,7 @@ NTSTATUS RtlImageNtHeaderEx(ULONG flags, const DWORD* base, ULONG FileHdrOffset,
 	{
 		const ULONG PeSigOffset = base[0xF]; // 0xF * sizeof(DWORD*) = 0x3C
 
-		if (!CheckFileHdrOffset || PeSigOffset < FileHdrOffset && PeSigOffset < 0xFFFFFFE7 && PeSigOffset + 0x18 < FileHdrOffset)
+		if (!CheckFileHdrOffset || PeSigOffset < ViewSize && PeSigOffset < 0xFFFFFFE7 && PeSigOffset + 0x18 < ViewSize)
 		{
 			if (PeSigOffset >= 0x10000000)
 			{
@@ -117,7 +117,7 @@ NTSTATUS RtlImageNtHeaderEx(ULONG flags, const DWORD* base, ULONG FileHdrOffset,
 NT_HEADERS* RtlImageNtHeader(const void* base)
 {
 	NT_HEADERS* NtHeader;
-	RtlImageNtHeaderEx(IGNORE_FILE_HDR_OFFSET, (DWORD*)base, 0, &NtHeader);
+	RtlImageNtHeaderEx(IGNORE_VIEW_SIZE, (DWORD*)base, 0, &NtHeader);
 	return NtHeader;
 }
 
@@ -132,7 +132,7 @@ NTSTATUS RtlpImageDirectoryEntryToDataEx(const void* base, bool MappedAsImage, U
 	}
 
 	NT_HEADERS* NtHeaders;
-	NTSTATUS result = RtlImageNtHeaderEx(IGNORE_FILE_HDR_OFFSET, (DWORD*)base, 0, &NtHeaders);
+	NTSTATUS result = RtlImageNtHeaderEx(IGNORE_VIEW_SIZE, (DWORD*)base, 0, &NtHeaders);
 	if (!NtHeaders) return result;
 
 	const WORD magic = NtHeaders->OptionalHeader.Magic;
@@ -176,7 +176,7 @@ void* RtlImageDirectoryEntryToData(const void* base, bool MappedAsImage, USHORT 
 bool LdrpValidateEntrySection(const DATA_TABLE_ENTRY* LdrEntry)
 {
 	NT_HEADERS* NtHeaders;
-	RtlImageNtHeaderEx(IGNORE_FILE_HDR_OFFSET | NT_HDR_FLAG_RESERVED, (DWORD*)LdrEntry->DllBase, 0, &NtHeaders);
+	RtlImageNtHeaderEx(IGNORE_VIEW_SIZE | NT_HDR_FLAG_RESERVED, (DWORD*)LdrEntry->DllBase, 0, &NtHeaders);
 
 	const UINT AddressOfEP = NtHeaders->OptionalHeader.AddressOfEntryPoint;
 	return !AddressOfEP || !LdrEntry->EntryPoint || AddressOfEP >= NtHeaders->OptionalHeader.SizeOfHeaders;

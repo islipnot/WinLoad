@@ -75,7 +75,7 @@ typedef void* (__stdcall RtlImageDirectoryEntryToData)(_In_ void* Base, _In_ boo
 
 typedef NTSTATUS(__fastcall RtlpImageDirectoryEntryToDataEx)(_In_ void* Base, _In_ bool MappedAsImage, _In_ UINT16 DirEntry, _Out_ ULONG* DirSize, _Out_ void** ResolvedAddress);
 
-typedef NTSTATUS(__stdcall RtlImageNtHeaderEx)(_In_ ULONG Flags, _In_ DWORD* Base, _In_ ULONG FileHdrOffset, _In_opt_ int ReservedAlwaysZero, _Out_ NT_HEADERS** NtHeaders); // Exported
+typedef NTSTATUS(__stdcall RtlImageNtHeaderEx)(_In_ ULONG Flags, _In_ DWORD* Base, _In_ SIZE_T ViewSize, _In_opt_ int ReservedAlwaysZero, _Out_ NT_HEADERS** NtHeaders); // Exported
 
 typedef NTSTATUS(__fastcall RtlpImageDirectoryEntryToData64)(_In_ BYTE* Base, _In_ bool MappedAsImage, _In_ UINT16 DirectoryEntry, _Out_ ULONG* DirectorySize, _In_ NT_HEADERS* NtHeaders, _Out_ void** ResolvedAddress);
 

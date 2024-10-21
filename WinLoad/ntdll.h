@@ -10,9 +10,9 @@ typedef enum _COR20_HDR_FLAGS
 
 typedef enum _RTL_NT_HDR_FLAGS // RtlImageNtHeader/RtlImageNtHeaderEx
 {
-	IGNORE_FILE_HDR_OFFSET = 1,
-	NT_HDR_FLAG_RESERVED   = 2,
-	INVALID_FLAG_BITS      = 0xFFFFFFFC,
+	IGNORE_VIEW_SIZE     = 1,
+	NT_HDR_FLAG_RESERVED = 2,
+	INVALID_FLAG_BITS    = 0xFFFFFFFC,
 } RTL_NT_HDR_FLAGS, NT_HDR_FLAGS;
 
 /* UNFINISHED */
@@ -153,7 +153,11 @@ typedef struct _LDRP_INVERTED_FUNCTION_TABLE_ENTRY // RtlpInsertInvertedFunction
 /* UNFINISHED - REAL STRUCT NAME UNKNOWN */
 typedef struct _LDRP_MODULE_PATH_DATA // LdrLoadDll/LdrGetDllHandleEx
 {
-	PWSTR ModulePath; // LdrpInitializeDllPath
+	union // LdrpInitializeDllPath
+	{
+		PWSTR ModulePath;
+		DWORD dwFlags;
+	};
 	char Unk1[4]; // LdrpComputeLazyDllPath
 	PWSTR PackageDirs;
 	ULONG ImplicitPathOptions; // LdrpInitializeDllPath
@@ -193,7 +197,7 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	struct DATA_TABLE_ENTRY* ParentLdrEntry; // LdrpAllocatePlaceHolder
 	struct DATA_TABLE_ENTRY* LdrEntry;       // LdrpAllocateModuleEntry
 	DWORD* LdrpWorkQueue;   // LdrpQueueWork
-	DWORD** pLdrpWorkQueue; // LdrpQueueWork
+	DWORD** pLdrpWorkQueue; // LdrpQueueWork/LdrpCheckForRetryLoading
 	struct DATA_TABLE_ENTRY* ReplacedModule;
 	struct DATA_TABLE_ENTRY** DependencyEntryList; // LdrpMapAndSnapDependency
 	ULONG DependencyCount;    // LdrpMapAndSnapDependency
@@ -206,8 +210,8 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	ULONG OldIATProtect;
 	DWORD* GuardCFCheckFunctionPointer;
 	DWORD GuardCFCheckFunctionPointerVA;
-	DWORD FileHeaderOffset; // Used in LdrpMapDllWithSectionHandle
-	int UnknownINT; // I think I saw this referenced before but I cant find it in load context xrefs. Might be unused.
+	SIZE_T ViewSize; // LdrpMinimalMapModule
+	int UnknownINT; // Used in LdrpMinimalMapModule/LdrpCheckForRetryLoading
 	HANDLE FileHandle; // LdrpMapDllNtFileName (initialized as INVALID_HANDLE_VALUE in LdrpAllocatePlaceHolder)
 	BYTE* ModuleSectionBase;
 	WCHAR ModuleNameBase;
@@ -261,7 +265,7 @@ typedef struct _FULL_LDR_DATA_TABLE_ENTRY // https://www.geoffchappell.com/studi
 		LIST_ENTRY InInitializationOrderLinks;
 		LIST_ENTRY InProgressLinks;
 	};
-	PVOID DllBase;
+	PVOID DllBase; // LdrpMinimalMapModule
 	PVOID EntryPoint; // LdrpProcessMappedModule
 	ULONG SizeOfImage;
 	UNICODE_STRING FullDllName;
