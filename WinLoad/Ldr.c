@@ -18,3 +18,10 @@ DATA_TABLE_ENTRY* LdrpHandleReplacedModule(const DATA_TABLE_ENTRY* ReplacedModul
 
 	return result;
 }
+
+PWSTR RtlGetNtSystemRoot()
+{
+	PWSTR SharedData = *(PWSTR*)NtCurrentPeb()->SharedData;
+	if (SharedData && *SharedData) return SharedData + PebSystemRootOffset;
+	else return (PWSTR)SystemRootAddress;
+}

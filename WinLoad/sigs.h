@@ -21,7 +21,7 @@ typedef NTSTATUS(__fastcall LdrpPreprocessDllName)(_In_ UNICODE_STRING* DllName,
 
 typedef NTSTATUS(__fastcall LdrpParseForwarderDescription)(_In_ char* Forwarder, _Out_ STRING* DllName, _Out_ char** ExportName, _In_ ULONG Ordinal);
 
-typedef UINT(__stdcall LdrStandardizeSystemPath)(_Inout_ UNICODE_STRING* Path); // Exported
+typedef void(__stdcall LdrStandardizeSystemPath)(_Inout_ UNICODE_STRING* Path); // Exported
 
 typedef NTSTATUS(__fastcall LdrpComputeLazyDllPath)(_Inout_ MODULE_PATH_DATA* DllData);
 
@@ -128,3 +128,13 @@ typedef void* (__fastcall LdrpFreeLoadContext)(_Inout_ LOAD_CONTEXT* LoadContext
 typedef DATA_TABLE_ENTRY* (__fastcall LdrpHandleReplacedModule)(_In_ const DATA_TABLE_ENTRY* ReplacedModule);
 
 typedef void* (__fastcall LdrpFreeReplacedModule)(_Inout_ DATA_TABLE_ENTRY* ReplacedModule);
+
+typedef DWORD(__stdcall RtlImageRvaToVa)(_In_ NT_HEADERS* NtHeader, _In_ DWORD base, _In_ DWORD Rva, _Inout_opt_ SECTION_HEADER** pSection); // Exported - valid buffer for pSection must be provided, but doesnt have to hold a valid ptr
+
+typedef SECTION_HEADER* (__stdcall RtlImageRvaToSection)(_In_ NT_HEADERS* NtHeader, _In_ DWORD base, _In_ DWORD Rva); // Exported
+
+typedef NTSTATUS(__stdcall RtlReplaceSystemDirectoryInPath)(_Inout_ UNICODE_STRING* Path, _In_ short Machine, _In_ short TargetMachine, _In_ bool IncludeSlashes); // Exported
+
+typedef NTSTATUS(__fastcall RtlpWow64SelectSystem32PathInternal)(_In_ short Machine, _In_ bool IncludeSlashes, _Out_ UNICODE_STRING* TargetSystemPath);
+
+typedef NTSTATUS(__fastcall RtlpReplaceFirstUnicodeSubstringOfEqualLength)(_Inout_ UNICODE_STRING* dst, _In_ UNICODE_STRING* substring, _In_ UNICODE_STRING* replacement);

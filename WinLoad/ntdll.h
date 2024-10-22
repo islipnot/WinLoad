@@ -150,24 +150,37 @@ typedef struct _LDRP_INVERTED_FUNCTION_TABLE_ENTRY // RtlpInsertInvertedFunction
 	DWORD SEHandlerCount; // LOAD_CONFIG::SEHandlerCount
 } LDRP_INVERTED_FUNCTION_TABLE_ENTRY, INVERTED_FUNCTION_TABLE_ENTRY;
 
+typedef struct _LDRP_DLL_DIR_DATA // LoadLibraryExW
+{
+	PWSTR Directory; // LdrGetDllPath (called from KernelBase.dll!LoadLibraryExW)
+	PWSTR Path;      // LdrGetDllPath (called from KernelBase.dll!LoadLibraryExW)
+} LDRP_DLL_DIR_DATA;
+
 /* UNFINISHED - REAL STRUCT NAME UNKNOWN */
 typedef struct _LDRP_MODULE_PATH_DATA // LdrLoadDll/LdrGetDllHandleEx
 {
-	union // LdrpInitializeDllPath
+	union
 	{
-		PWSTR ModulePath;
-		DWORD dwFlags;
+		struct // LdrpInitializeDllPath
+		{
+			PWSTR ModulePath;
+			DWORD dwFlags;
+		};
+		
+		UNICODE_STRING UnicodeModulePath; // LdrpComputeLazyDllPath
 	};
-	char Unk1[4]; // LdrpComputeLazyDllPath
+
 	PWSTR PackageDirs;
 	ULONG ImplicitPathOptions; // LdrpInitializeDllPath
 	PWSTR ModuleName; // LdrpInitializeDllPath
 	WCHAR CachedPath[26];
+
 	union
 	{
 		DWORD DwordUnk2;
 		BYTE BytesUnk2[4];
 	};
+	
 	char padding[2];
 } LDRP_MODULE_PATH_DATA, MODULE_PATH_DATA;
 
@@ -538,6 +551,14 @@ typedef struct _IMPORT_INFO // LdrpCheckRedirection
 	char* ImportName; // ASCII name of the import
 } IMPORT_INFO;
 
+// Global variables
+
+#define SystemRootAddress   0x7FFE0030
+
+#define PebSystemRootOffset 0x1E
+
+#define PtrEncryptionCookie 0x7FFE0330
+
 // Notes
 
 /*
@@ -557,6 +578,9 @@ typedef struct _IMPORT_INFO // LdrpCheckRedirection
 
 > Global pointer encryption key ( MEMORY[0x7FFE0330] )
 - Static key used for pointer encryption/decryption
+
+> Global windows directory string ( MEMORY[0x7FFE0030] )
+- A wide string of the current windows installation directory (Example: L"c:\\Windows")
 
 > LdrpSaferIsDllAllowedRoutine (global var)
 - Initialized in LdrpCodeAuthzInitialize as a pointer to ADVAPI32.DLL!SaferiIsDllAllowed
