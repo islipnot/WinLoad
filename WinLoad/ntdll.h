@@ -2,11 +2,6 @@
 
 // Enums
 
-typedef enum _DOS_PATH_NAME_TYPE // RtlDetermineDosPathNameType_Ustr
-{
-
-} DOS_PATH_NAME_TYPE;
-
 typedef enum _RTL_NT_HDR_FLAGS // RtlImageNtHeader/RtlImageNtHeaderEx
 {
 	IGNORE_VIEW_SIZE     = 1,
