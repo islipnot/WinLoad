@@ -2,11 +2,10 @@
 
 // Enums
 
-/* UNFINISHED */
-typedef enum _COR20_HDR_FLAGS
+typedef enum _DOS_PATH_NAME_TYPE // RtlDetermineDosPathNameType_Ustr
 {
-	unk1 = 1 // LdrpCompleteMapModule
-} COR20_HDR_FLAGS, CLR_HDR_FLAGS;
+
+} DOS_PATH_NAME_TYPE;
 
 typedef enum _RTL_NT_HDR_FLAGS // RtlImageNtHeader/RtlImageNtHeaderEx
 {
@@ -185,7 +184,7 @@ typedef struct _LDRP_MODULE_PATH_DATA // LdrLoadDll/LdrGetDllHandleEx
 } LDRP_MODULE_PATH_DATA, MODULE_PATH_DATA;
 
 /* UNFINISHED */
-typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), LdrpInitializeProcess (process context)
+typedef struct __declspec(align(4)) _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), LdrpInitializeProcess (process context)
 {
 	UNICODE_STRING ModuleName; // LdrpAllocatePlaceHolder
 	MODULE_PATH_DATA* PathData; // LdrpAllocatePlaceHolder
@@ -224,7 +223,7 @@ typedef struct _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolder (dll context), Ldrp
 	DWORD* GuardCFCheckFunctionPointer;
 	DWORD GuardCFCheckFunctionPointerVA;
 	SIZE_T ViewSize; // LdrpMinimalMapModule
-	int UnknownINT; // Used in LdrpMinimalMapModule/LdrpCheckForRetryLoading
+	bool UnknownBool; // Used in LdrpMinimalMapModule/LdrpCheckForRetryLoading/LdrpMapDllFullPath
 	HANDLE FileHandle; // LdrpMapDllNtFileName (initialized as INVALID_HANDLE_VALUE in LdrpAllocatePlaceHolder)
 	BYTE* ModuleSectionBase;
 	WCHAR ModuleNameBase;
@@ -535,6 +534,17 @@ typedef struct _FULL_PEB // https://www.geoffchappell.com/studies/windows/km/nto
 	};
 	ULONG NtGlobalFlag2;
 } FULL_PEB;
+
+typedef struct _FILE_NETWORK_OPEN_INFORMATION // https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_network_open_information
+{
+	LARGE_INTEGER CreationTime;
+	LARGE_INTEGER LastAccessTime;
+	LARGE_INTEGER LastWriteTime;
+	LARGE_INTEGER ChangeTime;
+	LARGE_INTEGER AllocationSize;
+	LARGE_INTEGER EndOfFile;
+	ULONG         FileAttributes;
+} FILE_NETWORK_OPEN_INFORMATION, * PFILE_NETWORK_OPEN_INFORMATION;
 
 /* Unsure if Microsoft uses a struct like or just manual bit manipulation */
 typedef struct _RELOC_DATA

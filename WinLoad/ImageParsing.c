@@ -173,6 +173,38 @@ void* RtlImageDirectoryEntryToData(const void* base, bool MappedAsImage, USHORT 
 	return RtlpImageDirectoryEntryToDataEx(base, MappedAsImage, DirEntry, DirSize, &ResolvedAddress) < 0 ? 0 : ResolvedAddress;
 }
 
+SECTION_HEADER* RtlImageRvaToSection(const NT_HEADERS* NtHeader, DWORD base, DWORD RVA)
+{
+	const UINT NumberOfSections = NtHeader->FileHeader.NumberOfSections;
+	if (!NumberOfSections) return 0;
+
+	SECTION_HEADER* section = IMAGE_FIRST_SECTION(NtHeader);
+
+	for (UINT i = 1; RVA < section->VirtualAddress || RVA >= section->VirtualAddress + section->SizeOfRawData; ++i)
+	{
+		++section;
+
+		if (i >= NumberOfSections)
+			return 0;
+	}
+
+	return section;
+}
+
+DWORD RtlImageRvaToVa(const NT_HEADERS* NtHeader, DWORD base, DWORD RVA, SECTION_HEADER** pSection)
+{
+	SECTION_HEADER* section;
+
+	if (!pSection || !(section = *pSection) || RVA < section->VirtualAddress || RVA >= section->VirtualAddress + section->SizeOfRawData)
+	{
+		section = RtlImageRvaToSection(NtHeader, base, RVA);
+	}
+	if (!section) return 0;
+	if (pSection) *pSection = section;
+
+	return RVA + base + (section->PointerToRawData - section->VirtualAddress);
+}
+
 bool LdrpValidateEntrySection(const DATA_TABLE_ENTRY* LdrEntry)
 {
 	NT_HEADERS* NtHeaders;

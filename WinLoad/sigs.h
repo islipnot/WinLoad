@@ -29,6 +29,8 @@ typedef NTSTATUS(__fastcall LdrpMapDllRetry)(_Inout_ LOAD_CONTEXT* LoadContext);
 
 typedef NTSTATUS(__fastcall LdrpMapDllFullPath)(_Inout_ LOAD_CONTEXT* LoadContext);
 
+typedef NTSTATUS(__fastcall LdrpMapDllSearchPath)(_Inout_ LOAD_CONTEXT* LoadContext);
+
 typedef NTSTATUS(__fastcall LdrpMapDllNtFileName)(_Inout_ LOAD_CONTEXT* LoadContext, _In_ UNICODE_STRING* ObjName);
 
 typedef NTSTATUS(__fastcall LdrpMapDllWithSectionHandle)(_Inout_ LOAD_CONTEXT* LoadContext);
@@ -138,3 +140,11 @@ typedef NTSTATUS(__stdcall RtlReplaceSystemDirectoryInPath)(_Inout_ UNICODE_STRI
 typedef NTSTATUS(__fastcall RtlpWow64SelectSystem32PathInternal)(_In_ short Machine, _In_ bool IncludeSlashes, _Out_ UNICODE_STRING* TargetSystemPath);
 
 typedef NTSTATUS(__fastcall RtlpReplaceFirstUnicodeSubstringOfEqualLength)(_Inout_ UNICODE_STRING* dst, _In_ UNICODE_STRING* substring, _In_ UNICODE_STRING* replacement);
+
+typedef NTSTATUS(__fastcall LdrpGetNtPathFromDosPath)(_In_ UNICODE_STRING* DosPath, _Out_ UNICODE_STRING* NtPath);
+
+typedef NTSTATUS(__fastcall RtlpDosPathNameToRelativeNtPathName)(_In_ int Flags, _In_ UNICODE_STRING* DosPath, _In_opt_ UNICODE_STRING* NtPath, _Inout_ FILE_NETWORK_OPEN_INFORMATION* FileInformation, _Out_opt_ LARGE_INTEGER* LastAccessTime, _Out_opt_ PWSTR PartName, _Out_ ULONG* FileAttributes);
+
+typedef bool(__stdcall RtlDosPathNameToRelativeNtPathName_U)(_In_ PCWSTR DosPath, _Inout_ FILE_NETWORK_OPEN_INFORMATION* FileInformation, _Out_ PWSTR PartName, _Out_ ULONG* FileAttributes); // Exported
+
+typedef DOS_PATH_NAME_TYPE(_fastcall RtlDetermineDosPathNameType_Ustr)(_In_ UNICODE_STRING* DosPath);
