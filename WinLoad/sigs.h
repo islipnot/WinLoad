@@ -147,4 +147,14 @@ typedef NTSTATUS(__fastcall RtlpDosPathNameToRelativeNtPathName)(_In_ int Flags,
 
 typedef bool(__stdcall RtlDosPathNameToRelativeNtPathName_U)(_In_ PCWSTR DosPath, _Inout_ FILE_NETWORK_OPEN_INFORMATION* FileInformation, _Out_ PWSTR PartName, _Out_ ULONG* FileAttributes); // Exported
 
-typedef DOS_PATH_NAME_TYPE(_fastcall RtlDetermineDosPathNameType_Ustr)(_In_ UNICODE_STRING* DosPath);
+typedef int(__fastcall RtlDetermineDosPathNameType_Ustr)(_In_ UNICODE_STRING* DosPath);
+
+typedef NTSTATUS(__fastcall LdrpDoPostSnapWork)(_Inout_ LOAD_CONTEXT* LoadContext);
+
+typedef NTSTATUS(__fastcall LdrpHandleTlsData)(_Inout_ DATA_TABLE_ENTRY* LdrEntry);
+
+typedef NTSTATUS(__fastcall LdrpAllocateTlsEntry)(_Inout_ IMAGE_TLS_DIRECTORY32* TlsDirectory, _In_ DATA_TABLE_ENTRY* LdrEntry, _Inout_ ULONG* TlsDirectorySz, _Out_opt_ BYTE* InitializedTlsBitmap, _Out_ TLS_ENTRY** TlsEntry);
+
+typedef NTSTATUS(__fastcall LdrpAcquireTlsIndex)(_Inout_ ULONG* TlsIndex, _Out_ BYTE* InitializedTlsBitmap);
+
+typedef ULONG(__fastcall LdrpComputeTlsSizeAndAlignment)(_In_ TLS_ENTRY* TlsEntry, _Out_ ULONG* TlsAlignment); // Returns TLS size

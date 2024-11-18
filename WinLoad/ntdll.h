@@ -224,6 +224,15 @@ typedef struct __declspec(align(4)) _LDRP_LOAD_CONTEXT // LdrpAllocatePlaceHolde
 	WCHAR ModuleNameBase;
 } LDRP_LOAD_CONTEXT, LOAD_CONTEXT;
 
+/* REAL STRUCT NAME UNKNOWN */
+typedef struct _TLS_ENTRY // LdrpAllocateTlsEntry
+{
+	LIST_ENTRY TlsList;
+	IMAGE_TLS_DIRECTORY32 TlsDirectory;
+	DATA_TABLE_ENTRY* LdrEntry;
+	ULONG TlsIndex;
+} TLS_ENTRY;
+
 typedef struct _LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
 {
 	LIST_ENTRY Modules;
@@ -541,7 +550,7 @@ typedef struct _FILE_NETWORK_OPEN_INFORMATION // https://learn.microsoft.com/en-
 	ULONG         FileAttributes;
 } FILE_NETWORK_OPEN_INFORMATION, * PFILE_NETWORK_OPEN_INFORMATION;
 
-/* Unsure if Microsoft uses a struct like or just manual bit manipulation */
+/* Unsure if Microsoft uses a struct like this, or manual bit manipulation */
 typedef struct _RELOC_DATA
 {
 	WORD Offset : 12;
