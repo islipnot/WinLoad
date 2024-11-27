@@ -153,8 +153,20 @@ typedef NTSTATUS(__fastcall LdrpDoPostSnapWork)(_Inout_ LOAD_CONTEXT* LoadContex
 
 typedef NTSTATUS(__fastcall LdrpHandleTlsData)(_Inout_ DATA_TABLE_ENTRY* LdrEntry);
 
-typedef NTSTATUS(__fastcall LdrpAllocateTlsEntry)(_Inout_ IMAGE_TLS_DIRECTORY32* TlsDirectory, _In_ DATA_TABLE_ENTRY* LdrEntry, _Inout_ ULONG* TlsDirectorySz, _Out_opt_ BYTE* InitializedTlsBitmap, _Out_ TLS_ENTRY** TlsEntry);
+typedef NTSTATUS(__fastcall LdrpAllocateTlsEntry)(_Inout_ IMAGE_TLS_DIRECTORY32* TlsDirectory, _In_ DATA_TABLE_ENTRY* LdrEntry, _Inout_ ULONG* TlsDirectorySz, _Out_ BOOLEAN* AllocatedBitmap, _Out_ TLS_ENTRY** TlsEntry);
 
-typedef NTSTATUS(__fastcall LdrpAcquireTlsIndex)(_Inout_ ULONG* TlsIndex, _Out_ BYTE* InitializedTlsBitmap);
+typedef NTSTATUS(__fastcall LdrpAcquireTlsIndex)(_Inout_ ULONG* TlsIndex, _Out_ BOOLEAN* AllocatedBitmap);
 
 typedef ULONG(__fastcall LdrpComputeTlsSizeAndAlignment)(_In_ TLS_ENTRY* TlsEntry, _Out_ ULONG* TlsAlignment); // Returns TLS size
+
+typedef PVOID(__fastcall LdrpInitializeProcessHeap)(_In_ LOAD_CONFIG* LoadCfg, _In_opt_ NT_HEADERS* NtHeader, _In_ RTL_USER_PROCESS_PARAMETERS* ProcessParams);
+
+typedef NTSTATUS(__fastcall LdrpPrepareModuleForExecution)(_In_ DATA_TABLE_ENTRY* LdrEntry, _Inout_ NTSTATUS* pStatus);
+
+typedef void(__fastcall LdrpCondenseGraph)(_Inout_ LDR_DDAG_NODE* DdagNode);
+
+typedef NTSTATUS(__fastcall LdrpNotifyLoadOfGraph)(_Inout_ LDR_DDAG_NODE* DdagNode);
+
+typedef NTSTATUS(__fastcall LdrpDynamicShimModule)(_In_ LDR_DDAG_NODE* DdagNode);
+
+typedef NTSTATUS(__fastcall LdrpBuildForwarderLink)(_Inout_ DATA_TABLE_ENTRY* ParentLdrEntry, _Inout_ DATA_TABLE_ENTRY* DependencyLdrEntry);

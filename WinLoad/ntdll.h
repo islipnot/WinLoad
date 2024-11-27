@@ -233,6 +233,22 @@ typedef struct _TLS_ENTRY // LdrpAllocateTlsEntry
 	ULONG TlsIndex;
 } TLS_ENTRY;
 
+/* UNFINISHED */
+struct __declspec(align(4)) UNKNOWN_TLS_STRUCT // LdrpHandleTlsData
+{
+	char pad1[4];
+	bool BitMapInitialized;
+	UINT ActiveThreadCount;
+	
+	union // SizeOfBitMap if TLS bitmap is initialized
+	{
+		ULONG SizeOfBitMap;
+		ULONG TlsDirectorySize;
+	};
+
+	char pad2[16];
+};
+
 typedef struct _LDR_DDAG_NODE // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntldr/ldr_ddag_node.htm
 {
 	LIST_ENTRY Modules;
