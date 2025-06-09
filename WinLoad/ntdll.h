@@ -229,7 +229,7 @@ typedef struct _TLS_ENTRY // LdrpAllocateTlsEntry
 {
 	LIST_ENTRY TlsList;
 	IMAGE_TLS_DIRECTORY32 TlsDirectory;
-	DATA_TABLE_ENTRY* LdrEntry;
+	struct DATA_TABLE_ENTRY* LdrEntry;
 	ULONG TlsIndex;
 } TLS_ENTRY;
 

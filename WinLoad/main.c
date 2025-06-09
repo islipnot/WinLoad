@@ -2,25 +2,6 @@
 #include "ntdll.h"
 #include "recreations.h"
 
-void ListModules()
-{
-    const LIST_ENTRY* ModuleListHead = &NtCurrentPeb()->Ldr->InLoadOrderModuleList;
-    MODULE_LIST_ENTRY* ModuleList = (MODULE_LIST_ENTRY*)ModuleListHead->Flink;
-
-    for (int i = 1; ModuleList->ListEntry.Flink != ModuleListHead; ++i)
-    {
-        const DATA_TABLE_ENTRY* LdrEntry = ModuleList->LdrEntry;
-
-        printf("\n[+] MODULE #%d\n", i);
-        printf("\n> LDR_DATA_TABLE_ENTRY\n\n");
-        printf("- FullDllName: %wZ\n",    &LdrEntry->FullDllName);
-        printf("- DllBase: 0x%X\n",       (UINT)LdrEntry->DllBase);
-        printf("- ParentDllBase: 0x%X\n", (UINT)LdrEntry->ParentDllBase);
-
-        ModuleList = (MODULE_LIST_ENTRY*)ModuleList->ListEntry.Flink;
-    }
-}
-
 void ResolveApi(PWSTR api)
 {
     UNICODE_STRING ApiName;
@@ -37,17 +18,13 @@ void ResolveApi(PWSTR api)
 
 int wmain(int argc, WCHAR* argv[])
 {
-    // Checking argument(s)
+    if (argc < 2)
+    {
+        printf("ERROR: No API name provided for resolution\n");
+        return 1;
+    }
 
-    if (!_wcsicmp(argv[1], L"ModuleList"))
-    {
-        ListModules();
-    }
-    else if (!_wcsicmp(argv[1], L"ResolveApi"))
-    {
-        ResolveApi(argv[2]);
-    }
-    else printf("Invalid argument(s)\n");
+    ResolveApi(argv[1]);
 
     return 0;
 }
